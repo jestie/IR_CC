@@ -70,6 +70,40 @@ Everything runs locally in the browser. No data leaves the machine.
 
 ---
 
+## Recommended: Host on a Web Server
+
+> **For real incident response, hosting on an HTTP(S) server is strongly recommended.**
+
+When you're running a live incident with a bridge team — especially inside a **Microsoft Teams** call or similar — you want everyone looking at the same URL, not emailing HTML files around while the clock is ticking.
+
+Dropping `ir_cc.html` on a web server takes 60 seconds and means:
+
+- Paste one URL into your Teams bridge chat and everyone is instantly on the same page
+- No "which version did you open?" confusion mid-incident
+- Works on any device — laptop, tablet, phone — without downloading anything
+- The URL can be pre-bookmarked by your whole SOC and IR team before an incident ever happens
+
+### Quick deployment options
+
+**Any basic web server — drop the file and go:**
+```
+# Python (built-in, no install needed)
+python3 -m http.server 8080
+
+# Node.js
+npx serve .
+```
+
+**Nginx / Apache** — copy `ir_cc.html` to your webroot (`/var/www/html/`) and it's live.
+
+**IIS (Windows Server)** — drop the file into `C:\inetpub\wwwroot\` and browse to it.
+
+**Intranet / SharePoint** — host it on an internal server so it's only accessible inside your network. No internet exposure needed; the file has zero external dependencies beyond Google Fonts.
+
+> **Security note:** This tool is designed for internal use during an active incident. If hosting externally, put it behind authentication or restrict by IP. No incident data is stored server-side — everything lives in the browser session.
+
+---
+
 ## Threat Playbooks
 
 | Threat Type | Regulatory Clock | Notes |
