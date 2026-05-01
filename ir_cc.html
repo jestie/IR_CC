@@ -1,0 +1,2296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IR War Room — Incident Command Centre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #050810;
+  --s1:      #090D1A;
+  --s2:      #0E1424;
+  --s3:      #141C30;
+  --border:  rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text:    #E2E8F4;
+  --muted:   #7A8AA0;
+  --dim:     #3A4860;
+  --accent:  #E879F9;
+  --accent-rgb: 232,121,249;
+  --mono: 'JetBrains Mono', monospace;
+  --head: 'Rajdhani', sans-serif;
+  --sans: 'Outfit', sans-serif;
+  --r: 8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--sans)}
+
+/* ── SCANLINE OVERLAY ── */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);pointer-events:none;z-index:9999}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 20%,rgba(var(--accent-rgb),.06) 0%,transparent 70%);pointer-events:none;z-index:0}
+
+/* ══ SETUP SCREEN ══════════════════════════════════════════════ */
+#setup{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+.setup-logo{font-family:var(--head);font-size:11px;letter-spacing:.3em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+.setup-title{font-family:var(--head);font-size:clamp(28px,4vw,48px);font-weight:700;color:#fff;letter-spacing:.04em;text-align:center;margin-bottom:4px}
+.setup-sub{font-size:13px;color:var(--muted);margin-bottom:36px;text-align:center}
+
+.setup-step{width:100%;max-width:780px}
+.step-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.15em;color:var(--dim);margin-bottom:14px;text-transform:uppercase}
+
+/* Threat type cards */
+.threat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:28px}
+@media(max-width:600px){.threat-grid{grid-template-columns:repeat(2,1fr)}}
+.threat-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:14px 12px;cursor:pointer;transition:all .15s;text-align:center;border-top:3px solid transparent}
+.threat-card:hover{border-color:var(--border2);background:var(--s3)}
+.threat-card.selected{background:var(--s3);border-top-color:var(--accent)}
+.tc-icon{font-size:22px;margin-bottom:6px}
+.tc-name{font-family:var(--head);font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.tc-tag{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:.08em}
+
+/* Form fields */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-row.three{grid-template-columns:1fr 1fr 1fr}
+.form-row.full{grid-template-columns:1fr}
+.field-wrap{display:flex;flex-direction:column;gap:5px}
+.field-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--dim);text-transform:uppercase}
+.field-input{background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:9px 12px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;transition:border-color .15s;width:100%}
+.field-input:focus{border-color:rgba(var(--accent-rgb),.5)}
+select.field-input option{background:#0E1424}
+
+.setup-members{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.member-row{display:flex;gap:8px}
+.member-row .field-input{flex:1}
+.btn-add-member{padding:9px 16px;background:var(--s3);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:var(--mono);font-size:10px;cursor:pointer;letter-spacing:.06em;transition:all .15s;white-space:nowrap}
+.btn-add-member:hover{border-color:var(--border2);color:var(--text)}
+.btn-remove{background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:14px;padding:0 4px;line-height:1}
+.btn-remove:hover{color:#EF4444}
+
+.quick-roles{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.qr-btn{font-family:var(--mono);font-size:9px;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;letter-spacing:.06em;transition:all .15s}
+.qr-btn:hover{border-color:var(--border2);color:var(--text)}
+
+.activate-btn{width:100%;max-width:780px;margin-top:20px;padding:16px;background:rgba(var(--accent-rgb),.12);border:1px solid rgba(var(--accent-rgb),.4);border-radius:var(--r);font-family:var(--head);font-size:20px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);cursor:pointer;transition:all .2s}
+.activate-btn:hover{background:rgba(var(--accent-rgb),.2);box-shadow:0 0 30px rgba(var(--accent-rgb),.15)}
+.activate-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ══ WAR ROOM ═══════════════════════════════════════════════ */
+#warroom{position:fixed;inset:0;display:grid;grid-template-rows:70px 1fr 150px;z-index:50}
+#warroom.hidden{display:none}
+
+/* ── TOP COMMAND BAR ── */
+#topbar{background:var(--s1);border-bottom:1px solid rgba(var(--accent-rgb),.25);display:flex;align-items:center;gap:0;padding:0;z-index:10;position:relative}
+#topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(var(--accent-rgb),.5),transparent)}
+
+.tb-section{display:flex;align-items:center;gap:12px;padding:0 16px;height:100%;border-right:1px solid var(--border)}
+.tb-section:last-child{border-right:none;margin-left:auto}
+
+.ir-ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.08em}
+.ir-name{font-family:var(--head);font-size:18px;font-weight:700;color:#fff;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+
+.sev-badge{font-family:var(--mono);font-size:10px;font-weight:700;padding:4px 10px;border-radius:4px;letter-spacing:.1em}
+.sev-p1{background:rgba(239,68,68,.2);color:#FCA5A5;border:1px solid rgba(239,68,68,.4);animation:sev-pulse 2s ease-in-out infinite}
+.sev-p2{background:rgba(245,158,11,.15);color:#FCD34D;border:1px solid rgba(245,158,11,.3)}
+.sev-p3{background:rgba(59,130,246,.15);color:#93C5FD;border:1px solid rgba(59,130,246,.3)}
+
+/* Severity adjuster */
+.sev-wrap{display:flex;align-items:center;gap:5px}
+.sev-adj{width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:4px;border:1px solid var(--border2);background:var(--s3);cursor:pointer;font-size:13px;font-weight:700;color:var(--muted);line-height:1;transition:all .15s;flex-shrink:0;user-select:none}
+.sev-adj:hover{background:var(--border2);color:var(--text)}
+.sev-adj:active{transform:scale(.9)}
+@keyframes sev-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.3)}50%{box-shadow:0 0 0 4px rgba(239,68,68,0)}}
+
+.threat-badge{font-family:var(--head);font-size:14px;font-weight:600;letter-spacing:.06em;padding:4px 12px;border-radius:4px;background:rgba(var(--accent-rgb),.12);color:var(--accent);border:1px solid rgba(var(--accent-rgb),.3)}
+
+/* Phase track */
+.phase-track{display:flex;align-items:center;gap:0}
+.pt-phase{display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;border-radius:5px;transition:background .15s;position:relative}
+.pt-phase:hover{background:var(--s3)}
+.pt-phase.active{background:rgba(var(--accent-rgb),.12)}
+.pt-phase.done .pt-num{background:rgba(16,185,129,.2);color:#34D399;border-color:rgba(16,185,129,.4)}
+.pt-phase.active .pt-num{background:rgba(var(--accent-rgb),.2);color:var(--accent);border-color:rgba(var(--accent-rgb),.5);box-shadow:0 0 8px rgba(var(--accent-rgb),.2)}
+.pt-num{width:22px;height:22px;border-radius:50%;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;font-weight:700;color:var(--dim);flex-shrink:0;transition:all .2s}
+.pt-label{font-family:var(--head);font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.03em;transition:color .2s;white-space:nowrap}
+.pt-phase.active .pt-label{color:var(--text)}
+.pt-phase.done .pt-label{color:var(--dim)}
+.pt-arrow{color:var(--dim);font-size:10px;padding:0 2px}
+
+/* Elapsed timer */
+.elapsed-wrap{display:flex;flex-direction:column;align-items:center;gap:2px}
+.elapsed-lbl{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.12em}
+.elapsed-time{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--accent);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+
+/* ── MAIN GRID ── */
+#main-grid{display:grid;grid-template-columns:200px 1fr 240px 250px;background:var(--bg);overflow:hidden}
+.panel{overflow-y:auto;padding:14px;border-right:1px solid var(--border)}
+.panel:last-child{border-right:none}
+
+/* Custom scrollbar */
+.panel::-webkit-scrollbar{width:4px}
+.panel::-webkit-scrollbar-track{background:transparent}
+.panel::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
+
+/* Panel section */
+.p-section{margin-bottom:16px}
+.p-section-title{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+
+/* ── LEFT PANEL: INTEL ── */
+.intel-field{margin-bottom:10px}
+.if-label{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.08em;margin-bottom:3px}
+.if-value{font-size:12px;color:var(--text);line-height:1.5}
+.if-edit{background:transparent;border:none;color:var(--text);font-size:12px;font-family:var(--sans);width:100%;resize:none;outline:none;line-height:1.5;cursor:text}
+.if-edit:focus{color:#fff}
+
+/* Regulatory clocks */
+.reg-clock{background:var(--s2);border:1px solid rgba(var(--accent-rgb),.2);border-radius:var(--r);padding:10px 12px;margin-bottom:8px}
+.rc-label{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.12em;color:var(--muted);margin-bottom:4px}
+.rc-time{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1}
+.rc-bar-wrap{height:4px;background:var(--s3);border-radius:2px;margin-top:6px;overflow:hidden}
+.rc-bar{height:100%;border-radius:2px;background:var(--accent);transition:width .5s}
+.rc-status{font-family:var(--mono);font-size:9px;margin-top:4px}
+.rc-clock.urgent .rc-time{color:#EF4444;animation:sev-pulse 1s ease-in-out infinite}
+.rc-clock.urgent .rc-bar{background:#EF4444}
+
+/* System tags */
+.system-tags{display:flex;flex-wrap:wrap;gap:4px}
+.stag{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(var(--accent-rgb),.08);color:rgba(var(--accent-rgb),1);border:1px solid rgba(var(--accent-rgb),.2)}
+.stag-add{background:transparent;border:1px dashed var(--border2);color:var(--dim);cursor:pointer}
+.stag-add:hover{border-color:var(--border2);color:var(--muted)}
+
+/* ── CENTER PANEL: ACTIONS ── */
+.phase-objective{background:rgba(var(--accent-rgb),.07);border:1px solid rgba(var(--accent-rgb),.2);border-radius:var(--r);padding:10px 12px;margin-bottom:14px}
+.po-phase{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--accent);margin-bottom:3px}
+.po-text{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* Action items */
+.action-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.action-item{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;display:flex;align-items:flex-start;gap:10px;transition:border-color .15s}
+.action-item:hover{border-color:var(--border2)}
+.action-item.done{opacity:.45}
+.action-item.waiting{border-color:rgba(252,211,77,.2);background:rgba(252,211,77,.03)}
+.action-item.critical{border-left:3px solid rgba(var(--accent-rgb),.6)}
+
+.action-check{width:18px;height:18px;border:1px solid var(--border2);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .15s;font-size:10px}
+.action-item.done .action-check{background:rgba(16,185,129,.2);border-color:rgba(16,185,129,.5);color:#34D399}
+.action-item.waiting .action-check{background:rgba(252,211,77,.1);border-color:rgba(252,211,77,.3);color:#FCD34D}
+.action-check:hover{border-color:var(--border2)}
+
+.action-body{flex:1;min-width:0}
+.action-title{font-size:13px;color:var(--text);line-height:1.3;margin-bottom:4px}
+.action-item.done .action-title{text-decoration:line-through;color:var(--muted)}
+.action-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.action-owner{font-family:var(--mono);font-size:9px;color:var(--muted);background:var(--s3);padding:2px 7px;border-radius:3px;border:1px solid var(--border)}
+.action-status-badge{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.08em;padding:2px 6px;border-radius:3px}
+.ab-active{background:rgba(16,185,129,.1);color:#34D399;border:1px solid rgba(16,185,129,.25)}
+.ab-waiting{background:rgba(252,211,77,.1);color:#FCD34D;border:1px solid rgba(252,211,77,.25)}
+.ab-done{background:rgba(var(--accent-rgb),.08);color:var(--accent);border:1px solid rgba(var(--accent-rgb),.2)}
+.ab-critical{background:rgba(239,68,68,.1);color:#FCA5A5;border:1px solid rgba(239,68,68,.25)}
+
+.action-controls{display:flex;gap:4px;flex-shrink:0;margin-top:1px}
+.ac-btn{background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:11px;padding:2px 4px;border-radius:3px;transition:color .15s}
+.ac-btn:hover{color:var(--muted)}
+
+/* Add action form */
+.add-action-form{background:var(--s2);border:1px dashed var(--border2);border-radius:var(--r);padding:10px 12px}
+.add-action-row{display:flex;gap:8px;margin-bottom:8px}
+.add-action-row .field-input{flex:1;padding:7px 10px;font-size:12px}
+.btn-primary{padding:7px 14px;background:rgba(var(--accent-rgb),.15);border:1px solid rgba(var(--accent-rgb),.35);border-radius:6px;color:var(--accent);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-primary:hover{background:rgba(var(--accent-rgb),.25)}
+.btn-ghost{padding:7px 14px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:.06em;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text)}
+
+/* Advance phase */
+.advance-wrap{display:flex;align-items:center;gap:10px;margin-top:12px}
+.advance-btn{flex:1;padding:10px;background:rgba(var(--accent-rgb),.1);border:1px solid rgba(var(--accent-rgb),.3);border-radius:var(--r);font-family:var(--head);font-size:15px;font-weight:700;letter-spacing:.1em;color:var(--accent);cursor:pointer;transition:all .2s;text-align:center}
+.advance-btn:hover{background:rgba(var(--accent-rgb),.2)}
+.advance-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* ── RIGHT PANEL: TEAM + BLOCKERS ── */
+.team-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.team-member{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:9px 11px;display:flex;align-items:center;gap:10px;transition:border-color .15s}
+.team-member:hover{border-color:var(--border2)}
+.tm-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;cursor:pointer;transition:all .15s}
+.tm-on .tm-dot{background:#10B981;box-shadow:0 0 5px rgba(16,185,129,.5)}
+.tm-away .tm-dot{background:#FCD34D}
+.tm-off .tm-dot{background:var(--dim)}
+.tm-info{flex:1;min-width:0}
+.tm-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tm-role{font-family:var(--mono);font-size:9px;color:var(--muted)}
+.tm-status{font-family:var(--mono);font-size:8px;letter-spacing:.06em}
+.tm-on .tm-status{color:#10B981}
+.tm-away .tm-status{color:#FCD34D}
+.tm-off .tm-status{color:var(--dim)}
+
+.add-member-inline{display:flex;gap:6px;margin-top:6px}
+.add-member-inline .field-input{flex:1;padding:6px 8px;font-size:11px}
+
+/* Blockers */
+.blocker-list{display:flex;flex-direction:column;gap:5px;margin-bottom:8px}
+.blocker-item{background:rgba(252,211,77,.04);border:1px solid rgba(252,211,77,.2);border-radius:6px;padding:8px 10px;display:flex;align-items:flex-start;gap:8px}
+.blocker-cb{width:14px;height:14px;border:1px solid rgba(252,211,77,.4);border-radius:3px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all .15s;margin-top:1px}
+.blocker-cb.resolved{background:rgba(16,185,129,.2);border-color:rgba(16,185,129,.5);color:#34D399}
+.blocker-text{font-size:11px;color:var(--muted);line-height:1.4;flex:1}
+.blocker-item.resolved .blocker-text{text-decoration:line-through;opacity:.5}
+
+.add-blocker-row{display:flex;gap:6px}
+.add-blocker-row .field-input{flex:1;padding:6px 8px;font-size:11px}
+
+/* Decisions */
+.decision-list{display:flex;flex-direction:column;gap:5px}
+.decision-item{background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--muted);line-height:1.4;display:flex;align-items:flex-start;gap:8px}
+.decision-cb{width:14px;height:14px;border:1px solid rgba(239,68,68,.3);border-radius:3px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;margin-top:1px;transition:all .15s}
+.decision-cb.resolved{background:rgba(16,185,129,.2);border-color:rgba(16,185,129,.5);color:#34D399}
+.decision-item.resolved .blocker-text{text-decoration:line-through;opacity:.5}
+
+/* ── ACTIVITY LOG ── */
+#actlog{background:var(--s1);border-top:1px solid rgba(var(--accent-rgb),.2);display:flex;flex-direction:column;overflow:hidden}
+.log-header{padding:8px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.log-title{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.15em;color:var(--dim)}
+.log-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse-dot 2s ease-in-out infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
+.log-add-wrap{display:flex;gap:8px;margin-left:auto}
+.log-add-wrap .field-input{padding:4px 10px;font-size:11px;width:260px}
+
+.log-entries{flex:1;overflow-y:auto;padding:8px 16px;display:flex;flex-direction:column;gap:4px}
+.log-entries::-webkit-scrollbar{width:4px}
+.log-entries::-webkit-scrollbar-thumb{background:var(--s3)}
+.log-entry{display:flex;align-items:baseline;gap:10px;font-size:11px;line-height:1.5}
+.le-time{font-family:var(--mono);font-size:9px;color:var(--dim);flex-shrink:0;min-width:52px}
+.le-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.le-text{color:var(--muted)}
+.le-system .le-dot{background:#10B981}  .le-system .le-text{color:var(--muted)}
+.le-action .le-dot{background:var(--accent)}  .le-action .le-text{color:var(--text)}
+.le-phase  .le-dot{background:#F59E0B}  .le-phase  .le-text{color:#FCD34D;font-weight:500}
+.le-warn   .le-dot{background:#EF4444}  .le-warn   .le-text{color:#FCA5A5}
+.le-note   .le-dot{background:var(--dim)} .le-note .le-text{color:var(--muted);font-style:italic}
+
+/* ══ LOGOS ══════════════════════════════════════════ */
+/* Setup upload areas */
+.logo-upload-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:28px;max-width:780px;width:100%}
+.lua{background:var(--s2);border:1px dashed var(--border2);border-radius:var(--r);padding:16px;text-align:center;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.lua:hover{border-color:rgba(var(--accent-rgb),.4);background:var(--s3)}
+.lua.has-logo{border-style:solid;border-color:rgba(var(--accent-rgb),.3)}
+.lua-icon{font-size:20px;margin-bottom:6px}
+.lua-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--muted);margin-bottom:3px}
+.lua-hint{font-size:10px;color:var(--dim)}
+.lua-preview{max-height:52px;max-width:100%;object-fit:contain;display:block;margin:8px auto 0}
+.lua-change{font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:4px;letter-spacing:.06em}
+
+/* Topbar logo slots */
+.tb-logo-slot{height:70px;min-width:110px;max-width:160px;display:flex;align-items:center;justify-content:center;padding:0 12px;cursor:pointer;border-right:1px solid var(--border);transition:background .15s;flex-shrink:0;position:relative}
+.tb-logo-slot:hover{background:rgba(255,255,255,.03)}
+.tb-logo-slot.right-slot{border-right:none;border-left:1px solid var(--border)}
+.tb-logo-slot .tls-img{max-height:42px;max-width:130px;object-fit:contain;display:block}
+.tb-logo-slot .tls-placeholder{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--dim);text-align:center;line-height:1.6;text-transform:uppercase}
+.tb-logo-slot:hover .tls-placeholder{color:rgba(var(--accent-rgb),.6)}
+.tls-tooltip{position:absolute;bottom:6px;right:6px;font-family:var(--mono);font-size:7px;color:var(--dim);opacity:0;transition:opacity .15s;letter-spacing:.06em}
+.tb-logo-slot:hover .tls-tooltip{opacity:1}
+
+/* Export controls */
+.tb-export-group{display:flex;flex-direction:column;align-items:center;gap:4px;padding:0 14px;height:100%;justify-content:center;border-right:1px solid var(--border);flex-shrink:0}
+.tb-export-lbl{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--dim);text-transform:uppercase}
+.tb-export-btns{display:flex;gap:5px}
+.exp-btn{display:flex;align-items:center;gap:4px;padding:5px 9px;border-radius:5px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:all .15s;white-space:nowrap;border:1px solid}
+.exp-btn-html{background:rgba(var(--accent-rgb),.1);border-color:rgba(var(--accent-rgb),.35);color:var(--accent)}
+.exp-btn-html:hover{background:rgba(var(--accent-rgb),.22);box-shadow:0 0 12px rgba(var(--accent-rgb),.15)}
+.exp-btn-csv{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.3);color:#34D399}
+.exp-btn-csv:hover{background:rgba(16,185,129,.18)}
+
+/* ── IOC PANEL ── */
+.ioc-type-tag{display:inline-block;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.08em;padding:2px 7px;border-radius:3px;text-transform:uppercase;flex-shrink:0}
+.ioc-ip      {background:rgba(239,68,68,.12);    color:#FCA5A5;border:1px solid rgba(239,68,68,.25)}
+.ioc-domain  {background:rgba(249,115,22,.12);   color:#FED7AA;border:1px solid rgba(249,115,22,.25)}
+.ioc-url     {background:rgba(234,179,8,.12);    color:#FDE68A;border:1px solid rgba(234,179,8,.25)}
+.ioc-hash    {background:rgba(99,102,241,.12);   color:#C7D2FE;border:1px solid rgba(99,102,241,.25)}
+.ioc-email   {background:rgba(45,212,191,.12);   color:#99F6E4;border:1px solid rgba(45,212,191,.25)}
+.ioc-file    {background:rgba(167,139,250,.12);  color:#DDD6FE;border:1px solid rgba(167,139,250,.25)}
+.ioc-registry{background:rgba(236,72,153,.12);  color:#FBCFE8;border:1px solid rgba(236,72,153,.25)}
+.ioc-cve     {background:rgba(244,63,94,.15);   color:#FDA4AF;border:1px solid rgba(244,63,94,.3)}
+.ioc-btc     {background:rgba(245,158,11,.12);  color:#FCD34D;border:1px solid rgba(245,158,11,.25)}
+.ioc-other   {background:rgba(100,116,139,.12); color:#CBD5E1;border:1px solid rgba(100,116,139,.25)}
+
+.ioc-row{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:var(--s2);border:1px solid var(--border);border-radius:6px;transition:border-color .15s;position:relative}
+.ioc-row:hover{border-color:var(--border2)}
+.ioc-row.confirmed{border-left:2px solid #10B981}
+.ioc-row.unconfirmed{border-left:2px solid #FCD34D;opacity:.85}
+.ioc-value{font-family:var(--mono);font-size:10px;color:var(--text);word-break:break-all;line-height:1.4;flex:1;cursor:text;user-select:all}
+.ioc-value:hover{color:#fff}
+.ioc-meta{display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap}
+.ioc-source{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.05em}
+.ioc-conf{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.06em;padding:1px 5px;border-radius:3px;cursor:pointer}
+.ioc-conf.c-confirmed{background:rgba(16,185,129,.12);color:#34D399;border:1px solid rgba(16,185,129,.25)}
+.ioc-conf.c-unconfirmed{background:rgba(252,211,77,.1);color:#FCD34D;border:1px solid rgba(252,211,77,.25)}
+
+.ioc-add-form{background:var(--s2);border:1px dashed var(--border2);border-radius:var(--r);padding:10px 12px;margin-top:8px}
+.ioc-add-row1{display:flex;gap:6px;margin-bottom:6px}
+.ioc-add-row2{display:flex;gap:6px}
+select.ioc-type-select{background:var(--s3);border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-family:var(--mono);font-size:10px;color:var(--text);outline:none;transition:border-color .15s;flex-shrink:0;min-width:108px}
+select.ioc-type-select:focus{border-color:rgba(var(--accent-rgb),.4)}
+select.ioc-type-select option{background:#0E1424}
+
+.ioc-summary-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.ioc-sum-item{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;cursor:pointer;opacity:.7;transition:opacity .15s;padding:2px 4px;border-radius:3px}
+.ioc-sum-item:hover{opacity:1;background:var(--s3)}
+.ioc-sum-item.active{opacity:1;background:var(--s3)}
+.ioc-sum-count{font-weight:700;font-size:10px}
+.ioc-filter-clear{font-family:var(--mono);font-size:8px;color:var(--dim);cursor:pointer;padding:2px 6px;border-radius:3px;border:1px solid var(--border);margin-left:auto;transition:all .15s}
+.ioc-filter-clear:hover{color:var(--muted);border-color:var(--border2)}
+
+.ioc-empty{font-size:11px;color:var(--dim);padding:8px 0;font-style:italic}
+.ioc-list{display:flex;flex-direction:column;gap:5px;max-height:340px;overflow-y:auto;padding-right:4px}
+.ioc-list::-webkit-scrollbar{width:3px}
+.ioc-list::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
+
+/* ══ MISC ═══════════════════════════════════════════ */
+.hidden{display:none!important}
+.divider{height:1px;background:var(--border);margin:10px 0}
+
+/* Transition overlay */
+#phase-flash{position:fixed;inset:0;background:rgba(var(--accent-rgb),.08);opacity:0;pointer-events:none;z-index:200;transition:opacity .4s}
+</style>
+</head>
+<body>
+
+<!-- PHASE TRANSITION FLASH -->
+<div id="phase-flash"></div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  SETUP SCREEN                                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="setup">
+  <div class="setup-logo">IR Command Suite · v4.0</div>
+  <div class="setup-title">WAR ROOM ACTIVATION</div>
+  <div class="setup-sub">Configure incident parameters before opening the bridge call</div>
+
+  <!-- LOGOS -->
+  <div class="setup-step" style="margin-bottom:0">
+    <div class="step-label">00 — Logos <span style="font-weight:400;color:var(--dim)">(optional — PNG, SVG, JPG)</span></div>
+    <div class="logo-upload-row">
+      <div class="lua" id="lua-company" onclick="triggerLogoUpload('company')">
+        <div class="lua-icon">🏢</div>
+        <div class="lua-label">Your Company Logo</div>
+        <div class="lua-hint">Appears top-left on War Room</div>
+        <img id="lua-preview-company" class="lua-preview" style="display:none">
+        <div class="lua-change" id="lua-change-company" style="display:none">Click to replace</div>
+      </div>
+      <div class="lua" id="lua-customer" onclick="triggerLogoUpload('customer')">
+        <div class="lua-icon">👥</div>
+        <div class="lua-label">Customer / Client Logo</div>
+        <div class="lua-hint">Appears top-right on War Room</div>
+        <img id="lua-preview-customer" class="lua-preview" style="display:none">
+        <div class="lua-change" id="lua-change-customer" style="display:none">Click to replace</div>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="logo-file-input" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
+
+  <!-- STEP 1: Threat Type -->
+
+  <div class="setup-step">
+    <div class="step-label">01 — Select Threat Type</div>
+    <div class="threat-grid" id="threat-grid">
+      <div class="threat-card" data-type="ransomware" data-color="#EF4444" data-rgb="239,68,68" onclick="selectThreat(this)">
+        <div class="tc-icon">🔒</div><div class="tc-name">Ransomware</div><div class="tc-tag">ENCRYPT · EXTORT</div>
+      </div>
+      <div class="threat-card" data-type="data_leakage" data-color="#3B82F6" data-rgb="59,130,246" onclick="selectThreat(this)">
+        <div class="tc-icon">💧</div><div class="tc-name">Data Leakage</div><div class="tc-tag">EXFIL · GDPR</div>
+      </div>
+      <div class="threat-card" data-type="malware" data-color="#F97316" data-rgb="249,115,22" onclick="selectThreat(this)">
+        <div class="tc-icon">🦠</div><div class="tc-name">Malware / Trojan</div><div class="tc-tag">INFECT · PERSIST</div>
+      </div>
+      <div class="threat-card" data-type="bec" data-color="#EAB308" data-rgb="234,179,8" onclick="selectThreat(this)">
+        <div class="tc-icon">💰</div><div class="tc-name">BEC / Email Fraud</div><div class="tc-tag">FRAUD · FINANCIAL</div>
+      </div>
+      <div class="threat-card" data-type="insider" data-color="#A855F7" data-rgb="168,85,247" onclick="selectThreat(this)">
+        <div class="tc-icon">👤</div><div class="tc-name">Insider Threat</div><div class="tc-tag">COVERT · HR · LEGAL</div>
+      </div>
+      <div class="threat-card" data-type="ddos" data-color="#38BDF8" data-rgb="56,189,248" onclick="selectThreat(this)">
+        <div class="tc-icon">⚡</div><div class="tc-name">DDoS / DoS</div><div class="tc-tag">AVAILABILITY · NETWORK</div>
+      </div>
+      <div class="threat-card" data-type="phishing" data-color="#2DD4BF" data-rgb="45,212,191" onclick="selectThreat(this)">
+        <div class="tc-icon">🎣</div><div class="tc-name">Phishing / Creds</div><div class="tc-tag">AiTM · IDENTITY</div>
+      </div>
+      <div class="threat-card" data-type="unauth" data-color="#E879F9" data-rgb="232,121,249" onclick="selectThreat(this)">
+        <div class="tc-icon">🔓</div><div class="tc-name">Unauthorised Access</div><div class="tc-tag">INTRUSION · DWELL</div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Incident Details -->
+    <div class="step-label">02 — Incident Details</div>
+    <div class="form-row three" style="margin-bottom:10px">
+      <div class="field-wrap">
+        <div class="field-label">IR Reference</div>
+        <input class="field-input" id="f-ref" placeholder="Auto: IR-2025-0001" />
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">Severity</div>
+        <select class="field-input" id="f-sev">
+          <option value="P1">P1 — Critical</option>
+          <option value="P2">P2 — High</option>
+          <option value="P3">P3 — Medium</option>
+        </select>
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">Discovery Method</div>
+        <select class="field-input" id="f-discovery">
+          <option value="EDR / AV Alert">EDR / AV Alert</option>
+          <option value="SIEM Alert">SIEM Alert</option>
+          <option value="User Report">User Report</option>
+          <option value="DLP / CASB Alert">DLP / CASB Alert</option>
+          <option value="Email Gateway Alert">Email Gateway Alert</option>
+          <option value="Third-Party Notification">Third-Party Notification</option>
+          <option value="Bank / Finance Alert">Bank / Finance Alert</option>
+          <option value="IT Monitoring">IT Monitoring</option>
+          <option value="Threat Intel Feed">Threat Intel Feed</option>
+          <option value="Manual Discovery">Manual Discovery</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="field-wrap">
+        <div class="field-label">Incident Name / Description</div>
+        <input class="field-input" id="f-name" placeholder="e.g. Ransomware detected on Finance-SRV01 — encrypted file share" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field-wrap">
+        <div class="field-label">Affected Systems (comma separated)</div>
+        <input class="field-input" id="f-systems" placeholder="e.g. Finance-SRV01, DC02, 47 workstations" />
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">Data at Risk</div>
+        <input class="field-input" id="f-data" placeholder="e.g. Financial records, customer PII, none confirmed" />
+      </div>
+    </div>
+
+    <!-- STEP 3: Bridge Team -->
+    <div class="step-label" style="margin-top:18px">03 — Initial Bridge Team</div>
+    <div class="quick-roles">
+      <span style="font-family:var(--mono);font-size:9px;color:var(--dim)">Quick add:</span>
+      <button class="qr-btn" onclick="quickAddMember('Incident Commander','IC')">+ IC</button>
+      <button class="qr-btn" onclick="quickAddMember('SOC Analyst','SOC')">+ SOC Analyst</button>
+      <button class="qr-btn" onclick="quickAddMember('IT Ops','IT Ops')">+ IT Ops</button>
+      <button class="qr-btn" onclick="quickAddMember('CISO','CISO')">+ CISO</button>
+      <button class="qr-btn" onclick="quickAddMember('Legal / DPO','Legal')">+ Legal/DPO</button>
+      <button class="qr-btn" onclick="quickAddMember('Finance Director','Finance')">+ Finance</button>
+      <button class="qr-btn" onclick="quickAddMember('HR Director','HR')">+ HR</button>
+      <button class="qr-btn" onclick="quickAddMember('Comms / PR','Comms')">+ Comms</button>
+      <button class="qr-btn" onclick="quickAddMember('NOC Lead','NOC')">+ NOC</button>
+    </div>
+    <div style="margin-top:10px" id="setup-members"></div>
+    <div class="member-row" style="margin-top:8px">
+      <input class="field-input" id="f-mem-name" placeholder="Name" style="flex:1.5">
+      <input class="field-input" id="f-mem-role" placeholder="Role" style="flex:1">
+      <button class="btn-add-member" onclick="addSetupMember()">+ Add</button>
+    </div>
+  </div>
+
+  <button class="activate-btn" id="activate-btn" disabled onclick="activateWarRoom()">⚡ INITIATE INCIDENT RESPONSE</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  WAR ROOM DASHBOARD                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="warroom" class="hidden">
+
+  <!-- TOP COMMAND BAR -->
+  <div id="topbar">
+
+    <!-- Company Logo — Left -->
+    <div class="tb-logo-slot" id="tls-company" onclick="triggerLogoSwap('company')" title="Click to change logo">
+      <img id="tls-company-img" class="tls-img" style="display:none">
+      <div id="tls-company-ph" class="tls-placeholder">YOUR<br>LOGO</div>
+      <div class="tls-tooltip">CLICK TO UPLOAD</div>
+    </div>
+    <div class="tb-section">
+      <div>
+        <div class="ir-ref" id="tb-ref">IR-2025-0001</div>
+        <div class="ir-name" id="tb-name">Incident Name</div>
+      </div>
+    </div>
+    <div class="tb-section">
+      <div id="tb-threat" class="threat-badge">RANSOMWARE</div>
+      <div class="sev-wrap">
+        <div class="sev-adj" onclick="adjustSeverity(-1)" title="Escalate priority">+</div>
+        <div id="tb-sev" class="sev-badge sev-p1">P1 CRITICAL</div>
+        <div class="sev-adj" onclick="adjustSeverity(1)" title="De-escalate priority">−</div>
+      </div>
+    </div>
+    <div class="tb-section" style="flex:1;justify-content:center">
+      <div class="phase-track" id="phase-track"></div>
+    </div>
+    <!-- Export Controls -->
+    <div class="tb-export-group">
+      <div class="tb-export-lbl">Export Report</div>
+      <div class="tb-export-btns">
+        <button class="exp-btn exp-btn-html" onclick="exportHTMLReport()" title="Export full incident report as HTML">📄 HTML</button>
+        <button class="exp-btn exp-btn-csv"  onclick="exportCSVReport()"  title="Export incident data as CSV">📊 CSV</button>
+      </div>
+    </div>
+
+    <div class="tb-section">
+      <div class="elapsed-wrap">
+        <div class="elapsed-lbl">ELAPSED</div>
+        <div class="elapsed-time" id="elapsed">00:00:00</div>
+      </div>
+    </div>
+
+    <!-- Customer Logo — Right -->
+    <div class="tb-logo-slot right-slot" id="tls-customer" onclick="triggerLogoSwap('customer')" title="Click to change customer logo">
+      <img id="tls-customer-img" class="tls-img" style="display:none">
+      <div id="tls-customer-ph" class="tls-placeholder">CUSTOMER<br>LOGO</div>
+      <div class="tls-tooltip">CLICK TO UPLOAD</div>
+    </div>
+
+  </div><!-- /topbar -->
+
+  <!-- MAIN GRID -->
+  <div id="main-grid">
+
+    <!-- LEFT: INTEL PANEL -->
+    <div class="panel" id="panel-intel">
+      <div class="p-section">
+        <div class="p-section-title">Incident Intel</div>
+        <div class="intel-field">
+          <div class="if-label">DISCOVERY</div>
+          <div class="if-value" id="i-discovery">—</div>
+        </div>
+        <div class="intel-field">
+          <div class="if-label">AFFECTED SYSTEMS</div>
+          <div class="system-tags" id="i-systems"></div>
+        </div>
+        <div class="intel-field">
+          <div class="if-label">DATA AT RISK</div>
+          <textarea class="if-edit" id="i-data" rows="2" placeholder="Click to edit..."></textarea>
+        </div>
+        <div class="intel-field">
+          <div class="if-label">NOTES / CONTEXT</div>
+          <textarea class="if-edit" id="i-notes" rows="3" placeholder="Add situational context..."></textarea>
+        </div>
+      </div>
+
+      <div class="p-section" id="reg-clock-section" style="display:none">
+        <div class="p-section-title">Regulatory Clocks</div>
+        <div id="reg-clocks"></div>
+      </div>
+
+      <div class="p-section">
+        <div class="p-section-title">Linked Playbook</div>
+        <div id="playbook-link" style="font-size:11px;color:var(--muted);line-height:1.5"></div>
+      </div>
+    </div>
+
+    <!-- CENTER: ACTIONS PANEL -->
+    <div class="panel" id="panel-actions">
+      <div class="phase-objective" id="phase-obj">
+        <div class="po-phase" id="po-phase-label">PHASE 1 · DETECT</div>
+        <div class="po-text" id="po-text">Confirm the incident, assess scope, and assemble the response team.</div>
+      </div>
+
+      <div class="p-section-title">Active Actions</div>
+      <div class="action-list" id="action-list"></div>
+
+      <!-- Add action form -->
+      <div class="add-action-form">
+        <div class="add-action-row">
+          <input class="field-input" id="new-action-title" placeholder="Add action item..." onkeydown="if(event.key==='Enter')addCustomAction()">
+          <input class="field-input" id="new-action-owner" placeholder="Owner" style="max-width:130px" onkeydown="if(event.key==='Enter')addCustomAction()">
+          <button class="btn-primary" onclick="addCustomAction()">+ ADD</button>
+        </div>
+      </div>
+
+      <div class="advance-wrap">
+        <button class="advance-btn" id="advance-btn" onclick="advancePhase()">ADVANCE TO NEXT PHASE →</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: TEAM + BLOCKERS -->
+    <div class="panel" id="panel-team">
+      <div class="p-section">
+        <div class="p-section-title">Bridge Team</div>
+        <div class="team-list" id="team-list"></div>
+        <div class="add-member-inline">
+          <input class="field-input" id="rt-name" placeholder="Name">
+          <input class="field-input" id="rt-role" placeholder="Role" style="max-width:90px">
+          <button class="btn-ghost" onclick="addTeamMember()" style="padding:6px 10px">+</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="p-section">
+        <div class="p-section-title">⏳ Waiting For / Blockers</div>
+        <div class="blocker-list" id="blocker-list"></div>
+        <div class="add-blocker-row">
+          <input class="field-input" id="new-blocker" placeholder="Add blocker..." onkeydown="if(event.key==='Enter')addBlocker()">
+          <button class="btn-ghost" onclick="addBlocker()" style="padding:6px 10px">+</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="p-section">
+        <div class="p-section-title">🔴 Decisions Needed</div>
+        <div class="decision-list" id="decision-list"></div>
+        <div class="add-blocker-row" style="margin-top:6px">
+          <input class="field-input" id="new-decision" placeholder="Add decision item..." onkeydown="if(event.key==='Enter')addDecision()">
+          <button class="btn-ghost" onclick="addDecision()" style="padding:6px 10px">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- IOC PANEL -->
+    <div class="panel" id="panel-ioc">
+      <div class="p-section">
+        <div class="p-section-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>⚠ IOC Tracker</span>
+          <span id="ioc-total-badge" style="font-family:var(--mono);font-size:9px;color:var(--accent)">0 IOCs</span>
+        </div>
+
+        <div class="ioc-summary-bar" id="ioc-summary-bar">
+          <span style="font-family:var(--mono);font-size:9px;color:var(--dim)">Filter:</span>
+        </div>
+
+        <div class="ioc-list" id="ioc-list">
+          <div class="ioc-empty" id="ioc-empty">No IOCs logged yet — add below</div>
+        </div>
+
+        <div class="ioc-add-form">
+          <div class="ioc-add-row1">
+            <select class="ioc-type-select" id="ioc-type">
+              <option value="ip">🌐 IP Address</option>
+              <option value="domain">🔗 Domain</option>
+              <option value="url">🔒 URL</option>
+              <option value="hash">🔑 File Hash</option>
+              <option value="email">✉ Email</option>
+              <option value="file">📄 File / Path</option>
+              <option value="registry">🗝 Registry Key</option>
+              <option value="cve">⚡ CVE</option>
+              <option value="btc">₿ Wallet / BTC</option>
+              <option value="other">◎ Other</option>
+            </select>
+            <input class="field-input" id="ioc-value" placeholder="Enter IOC value..." style="flex:1;padding:7px 9px;font-size:11px;font-family:var(--mono)" onkeydown="if(event.key==='Enter')addIOC()">
+          </div>
+          <div class="ioc-add-row2">
+            <select class="ioc-type-select" id="ioc-confidence" style="flex:1">
+              <option value="confirmed">✓ Confirmed</option>
+              <option value="unconfirmed">? Unconfirmed</option>
+            </select>
+            <button class="btn-primary" onclick="addIOC()" style="padding:6px 12px;flex:1">+ ADD</button>
+          </div>
+          <div style="margin-top:6px">
+            <input class="field-input" id="ioc-source" placeholder="Source / channel (EDR, threat intel, OSINT, user report...)" style="width:100%;padding:6px 9px;font-size:11px">
+          </div>
+        </div>
+      </div>
+    </div><!-- /panel-ioc -->
+
+  </div><!-- /main-grid -->
+
+  <!-- ACTIVITY LOG -->
+  <div id="actlog">
+    <div class="log-header">
+      <div class="log-dot"></div>
+      <div class="log-title">LIVE ACTIVITY LOG</div>
+      <div class="log-add-wrap">
+        <input class="field-input" id="log-input" placeholder="Add manual log entry..." onkeydown="if(event.key==='Enter')addManualLog()">
+        <button class="btn-ghost" onclick="addManualLog()" style="padding:4px 12px">LOG</button>
+      </div>
+    </div>
+    <div class="log-entries" id="log-entries"></div>
+  </div>
+
+</div><!-- /warroom -->
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   PLAYBOOK DATA — 8 threat types × 5 phases × 4-5 actions
+══════════════════════════════════════════════════════════════ */
+const PLAYBOOKS = {
+  ransomware: {
+    name:'Ransomware Attack', short:'RANSOMWARE', icon:'🔒',
+    color:'#EF4444', rgb:'239,68,68',
+    clocks:[{label:'ICO 72hr — if personal data exfiltrated',hours:72,trigger:'Confirm if personal data was accessed'}],
+    playbookFile:'Ransomware IR Playbook',
+    phases:[
+      { name:'Detect', obj:'Confirm the ransomware event, establish blast radius, and assemble the full response team.',
+        actions:[
+          {t:'Confirm alert — check for ransom note, encrypted files, C2 traffic',o:'SOC Analyst',c:true},
+          {t:'Raise P1 IR ticket — log reference, start the clock',o:'Incident Commander',c:true},
+          {t:'Convene bridge — IC, SOC, IT Ops, CISO, Legal',o:'Incident Commander',c:true},
+          {t:'Scope blast radius — affected hosts, patient zero, lateral movement',o:'SOC Analyst',c:false},
+          {t:'Notify cyber insurer immediately per policy terms',o:'CISO',c:false},
+        ],
+        blockers:['Waiting: full scope of affected systems confirmed','Waiting: patient zero identified'],
+        decisions:['Is personal data potentially involved? → Triggers ICO 72hr clock']
+      },
+      { name:'Contain', obj:'Isolate infected systems, protect backups, reset privileged credentials, preserve forensic evidence.',
+        actions:[
+          {t:'Isolate affected hosts via EDR quarantine — DO NOT power off',o:'IT Ops',c:true},
+          {t:'Isolate backup servers — verify last clean snapshot integrity',o:'IT Ops',c:true},
+          {t:'Reset all privileged credentials — DA, service accounts, revoke Kerberos',o:'Identity Team',c:true},
+          {t:'Ransom payment decision — Legal, insurer, NCSC / NCA first',o:'CISO / Legal',c:false},
+          {t:'Preserve forensic evidence — memory dumps, disk images, full log export',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: backup integrity confirmation','Waiting: Legal/insurer guidance on payment decision'],
+        decisions:['Pay ransom or not? — Legal, OFAC check, insurer approval required']
+      },
+      { name:'Eradicate', obj:'Identify the ransomware strain, remove all malware and persistence, close the initial access vector.',
+        actions:[
+          {t:'Identify strain via ID Ransomware — check for free decryptors (No More Ransom)',o:'SOC Analyst',c:true},
+          {t:'Remove malware, scheduled tasks, registry persistence, C2 channels',o:'SOC Analyst',c:true},
+          {t:'Patch / close the exploited initial access vulnerability',o:'IT Ops',c:true},
+          {t:'Full EDR rescan + IOC sweep — confirm zero active C2 for 24 hours',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: 24-hour C2 observation window','Waiting: CISO/IC sign-off before recovery'],
+        decisions:[]
+      },
+      { name:'Recover', obj:'Restore services from clean backups in priority order, staged reconnection, regulatory notifications.',
+        actions:[
+          {t:'Restore critical systems from pre-infection clean backup',o:'IT Ops',c:true},
+          {t:'Staged reconnection — 24hr hold per batch, enhanced monitoring',o:'IT Ops',c:true},
+          {t:'ICO 72hr notification — DPO to assess if personal data was accessed',o:'DPO / Legal',c:false},
+          {t:'Board briefing — financial impact, recovery timeline, insurer claim',o:'CISO',c:false},
+        ],
+        blockers:['Waiting: backup restore testing complete','Waiting: ICO notification assessment'],
+        decisions:['Board comms: what do we disclose and when?']
+      },
+      { name:'Post-Incident', obj:'Root cause analysis, hardening improvements, playbook update, incident closure.',
+        actions:[
+          {t:'Post-incident review — blameless RCA, full attack timeline, MTTD/MTTR',o:'Incident Commander',c:false},
+          {t:'Remediation: MFA everywhere, network segmentation, immutable backups',o:'CISO',c:false},
+          {t:'Feed IOCs to SIEM/TIP, share with NCSC/ISAC',o:'SOC Lead',c:false},
+          {t:'Update playbooks and close IR ticket with full resolution notes',o:'Incident Commander',c:false},
+        ],
+        blockers:[],decisions:[]
+      }
+    ]
+  },
+  data_leakage: {
+    name:'Data Leakage / Exfiltration', short:'DATA LEAKAGE', icon:'💧',
+    color:'#3B82F6', rgb:'59,130,246',
+    clocks:[{label:'ICO 72hr — personal data breach notification',hours:72,trigger:'Clock started: personal data exfiltration confirmed'}],
+    playbookFile:'Data Leakage IR Playbook',
+    phases:[
+      { name:'Detect', obj:'Confirm the exfiltration event, classify the data, start the GDPR clock if personal data is involved.',
+        actions:[
+          {t:'Confirm exfil event via DLP/CASB/SIEM — rule out false positive',o:'SOC Analyst',c:true},
+          {t:'Raise IR ticket — P1 if bulk PII, P2 if limited scope',o:'Incident Commander',c:true},
+          {t:'Convene bridge — include DPO/Legal from the start',o:'Incident Commander',c:true},
+          {t:'Classify data — personal data? GDPR clock starts NOW if yes',o:'DPO',c:true},
+          {t:'Notify insurer immediately',o:'CISO',c:false},
+        ],
+        blockers:['Waiting: data classification confirmed by DPO','Waiting: exfil scope established'],
+        decisions:['Does this involve personal data? → ICO 72hr clock starts','Insider or external attacker?']
+      },
+      { name:'Contain', obj:'Stop the exfiltration channel, secure the implicated account, preserve all forensic evidence.',
+        actions:[
+          {t:'Block egress route — email, cloud sync, USB, web upload, FTP',o:'SOC / IT Ops',c:true},
+          {t:'Suspend account — force signout, Legal Hold on mailbox/OneDrive',o:'IT Ops',c:true},
+          {t:'Preserve forensic evidence — DLP logs, email headers, proxy logs',o:'SOC Analyst',c:true},
+          {t:'Insider vs external decision — determines HR involvement + monitoring authority',o:'IC / Legal / HR',c:false},
+          {t:'Quantify scope — exact data, volume, destination, method, timeline',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: Legal authorisation for covert monitoring if insider','Waiting: full exfil scope reconstructed'],
+        decisions:['Is this an insider? → HR must be involved before any account action']
+      },
+      { name:'Eradicate', obj:'Remove attacker access, close the exfil vector, attempt data retrieval.',
+        actions:[
+          {t:'Remove attacker access + close initial vector permanently',o:'IT Ops',c:true},
+          {t:'Check and remove mail forwarding rules on all affected accounts',o:'IT Ops',c:true},
+          {t:'Attempt data retrieval/takedown — Legal to lead',o:'Legal',c:false},
+          {t:'Validate exfil has fully stopped — DLP clean sweep',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: Legal sign-off before recovery'],decisions:[]
+      },
+      { name:'Recover', obj:'Restore access, regulatory notifications within 72hrs, individual notifications if high risk.',
+        actions:[
+          {t:'Restore account access — new credentials, heightened DLP monitoring 30 days',o:'IT Ops',c:true},
+          {t:'ICO 72hr notification — submit with available information, supplement later',o:'DPO',c:true},
+          {t:'Individual notification assessment — required if high risk to individuals',o:'Legal / DPO',c:false},
+          {t:'Sector regulator notification if applicable (FCA, CQC, etc.)',o:'Legal',c:false},
+        ],
+        blockers:['Waiting: ICO notification submitted'],decisions:['Individual notification required? — DPO/Legal to advise']
+      },
+      { name:'Post-Incident', obj:'Data governance improvements, breach register update, lessons learned.',
+        actions:[
+          {t:'PIR — why was data accessible? DLP gap analysis',o:'Incident Commander',c:false},
+          {t:'Improve data governance — classification, CASB, UBA, access reviews',o:'CISO',c:false},
+          {t:'Update Data Breach Register (UK GDPR Article 33(5))',o:'DPO',c:true},
+          {t:'Close IR ticket with PIR attached',o:'Incident Commander',c:false},
+        ],
+        blockers:[],decisions:[]
+      }
+    ]
+  },
+  malware: {
+    name:'Malware / Trojan Infection', short:'MALWARE', icon:'🦠',
+    color:'#F97316', rgb:'249,115,22',
+    clocks:[],
+    playbookFile:'Malware / Trojan IR Playbook',
+    phases:[
+      { name:'Detect', obj:'Confirm malware, identify the family and type, determine if active or dormant, scope the infection.',
+        actions:[
+          {t:'Confirm alert — hash to VirusTotal, identify family and type',o:'SOC Analyst',c:true},
+          {t:'Raise ticket — P1 if RAT/worm/infostealer on privileged host',o:'Incident Commander',c:true},
+          {t:'Convene bridge — add Finance if banking trojan suspected',o:'Incident Commander',c:true},
+          {t:'Sandbox analysis (Any.run / Hybrid Analysis) — C2, capabilities, persistence',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: sandbox analysis results','Waiting: estate-wide IOC sweep results'],
+        decisions:['P1 or P2? Banking trojan → notify Finance immediately','Credential harvesting possible? → triggers full reset cascade']
+      },
+      { name:'Contain', obj:'Isolate infected hosts, block C2, assess credential exposure, preserve forensics, hunt for lateral movement.',
+        actions:[
+          {t:'Isolate infected hosts via EDR — DO NOT power off',o:'IT Ops',c:true},
+          {t:'Block all C2 IPs/domains — firewall, DNS sinkhole, web proxy',o:'SOC Analyst',c:true},
+          {t:'Credential harvesting suspected? — full credential reset cascade',o:'Identity Team',c:true},
+          {t:'Forensic preservation — memory dump, disk image, EDR telemetry',o:'SOC Analyst',c:false},
+          {t:'Hunt for lateral movement across estate — LOLBin exec, auth anomalies',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: credential harvesting assessment complete','Waiting: lateral movement hunt results'],
+        decisions:['Banking trojan → contact corporate bank fraud team immediately']
+      },
+      { name:'Eradicate', obj:'Remove all malware and persistence mechanisms, close the infection vector.',
+        actions:[
+          {t:'Remove malware, scheduled tasks, reg keys, services, browser extensions',o:'SOC Analyst',c:true},
+          {t:'Close initial infection vector — patch, block domain, remove software',o:'IT Ops',c:true},
+          {t:'Full EDR rescan + IOC sweep — 24hr observation, confirm no C2',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: 24-hour clean observation window'],decisions:[]
+      },
+      { name:'Recover', obj:'Rebuild or restore affected systems, reset all compromised credentials, staged reconnection.',
+        actions:[
+          {t:'Rebuild from SOE or restore from pre-infection backup',o:'IT Ops',c:true},
+          {t:'Reset all compromised credentials — revoke tokens first, then password reset',o:'Identity Team',c:true},
+          {t:'Staged reconnection — enhanced EDR monitoring for 30 days',o:'IT Ops',c:false},
+        ],
+        blockers:['Waiting: systems rebuilt and validated clean'],decisions:[]
+      },
+      { name:'Post-Incident', obj:'Dwell time analysis, patch and harden controls, update threat intel.',
+        actions:[
+          {t:'PIR — dwell time, detection gap, why did the endpoint get infected',o:'Incident Commander',c:false},
+          {t:'Patch estate, harden email security, tune EDR behavioural rules',o:'CISO',c:false},
+          {t:'Feed IOCs to SIEM/TIP, submit sample to AV vendors for signature update',o:'SOC Lead',c:false},
+          {t:'Close IR ticket',o:'Incident Commander',c:false},
+        ],
+        blockers:[],decisions:[]
+      }
+    ]
+  },
+  bec: {
+    name:'Business Email Compromise', short:'BEC', icon:'💰',
+    color:'#EAB308', rgb:'234,179,8',
+    clocks:[
+      {label:'BANK RECALL WINDOW — wire recall',hours:2,trigger:'2-HOUR GOLDEN WINDOW — call bank NOW'},
+      {label:'ICO 72hr — if ATO with personal data',hours:72,trigger:'If account takeover with personal data in mailbox'}
+    ],
+    playbookFile:'BEC IR Playbook',
+    phases:[
+      { name:'Detect', obj:'Confirm BEC type, establish financial exposure, determine if account takeover or domain spoofing.',
+        actions:[
+          {t:'Confirm BEC event type — ATO, CEO fraud, invoice fraud, payroll diversion',o:'SOC Analyst',c:true},
+          {t:'Raise P1 ticket if funds transferred or ATO confirmed',o:'Incident Commander',c:true},
+          {t:'Convene bridge — Finance Director MUST be on call immediately',o:'Incident Commander',c:true},
+          {t:'Determine ATO vs spoofing — check sign-in logs for anomalous logins',o:'SOC Analyst',c:true},
+          {t:'Quantify total financial exposure — amounts pending, transferred, at risk',o:'Finance Director',c:false},
+        ],
+        blockers:['Waiting: ATO vs spoofing confirmed','Waiting: financial exposure quantified'],
+        decisions:['ATO or spoofing? → determines full IR scope','Have funds already been transferred? → bank call takes priority over all steps']
+      },
+      { name:'Contain', obj:'CALL THE BANK NOW. Secure the account. Alert Finance. Stop all pending payments.',
+        actions:[
+          {t:'⚡ CALL BANK FRAUD TEAM NOW — request wire recall, place hold on account',o:'Finance Director',c:true},
+          {t:'Force signout all sessions — revoke tokens, reset password, Legal Hold mailbox',o:'IT Ops',c:true},
+          {t:'Alert Finance — hold ALL pending payment requests and bank account changes',o:'Finance Director',c:true},
+          {t:'Preserve evidence — email headers (.eml), sign-in logs, mail rules, OAuth apps',o:'SOC Analyst',c:false},
+          {t:'Obtain bank fraud reference number for insurer claim',o:'Finance Director',c:false},
+        ],
+        blockers:['Waiting: bank recall reference number received','Waiting: account fully secured and attacker removed'],
+        decisions:['Funds transferred? → bank recall window is closing — escalate NOW']
+      },
+      { name:'Eradicate', obj:'Remove all attacker persistence from the mailbox, close the compromise vector.',
+        actions:[
+          {t:'Remove mailbox persistence — forwarding rules, OAuth apps, MFA devices, delegates',o:'IT Ops',c:true},
+          {t:'Identify initial compromise vector — phishing, AiTM, password spray, rogue OAuth',o:'SOC Analyst',c:true},
+          {t:'Validate account fully clean — no sessions, no rules, no rogue apps',o:'IT Ops',c:false},
+        ],
+        blockers:['Waiting: full mailbox audit complete'],decisions:[]
+      },
+      { name:'Recover', obj:'Financial recovery, third-party notifications, regulatory obligations.',
+        actions:[
+          {t:'Follow up bank recall daily — escalate if no response within 24hrs',o:'Finance Director',c:true},
+          {t:'Report to Action Fraud (UK: 0300 123 2040) — obtain crime reference',o:'Legal',c:true},
+          {t:'Submit cyber insurance claim with crime reference and timeline',o:'CISO / Finance',c:false},
+          {t:'Notify affected suppliers/customers — Legal must approve wording first',o:'Legal / Comms',c:false},
+          {t:'ICO notification if ATO and personal data was in the mailbox',o:'DPO',c:false},
+        ],
+        blockers:['Waiting: crime reference number from Action Fraud','Waiting: bank recall outcome'],
+        decisions:['FCA notification required if regulated firm and material loss?']
+      },
+      { name:'Post-Incident', obj:'Why did social engineering succeed? Harden email auth, financial controls, and MFA.',
+        actions:[
+          {t:'PIR — why social engineering succeeded, financial controls gap, bank recall speed',o:'Incident Commander',c:false},
+          {t:'Enforce DMARC p=reject, phishing-resistant MFA, Conditional Access, block legacy auth',o:'CISO',c:false},
+          {t:'Mandate out-of-band payment verification + dual authorisation for all transfers',o:'Finance Director',c:false},
+          {t:'BEC awareness simulation within 30 days — targeted at Finance and exec team',o:'Security Awareness',c:false},
+          {t:'Update bank contacts in BEC playbook, close IR ticket',o:'Incident Commander',c:false},
+        ],
+        blockers:[],decisions:[]
+      }
+    ]
+  },
+  insider: {
+    name:'Insider Threat', short:'INSIDER THREAT', icon:'👤',
+    color:'#A855F7', rgb:'168,85,247',
+    clocks:[{label:'ICO 72hr — if personal data exfiltrated',hours:72,trigger:'If personal data exfiltrated by subject'}],
+    playbookFile:'Insider Threat IR Playbook',
+    phases:[
+      { name:'Detect', obj:'Confirm insider indicators, classify threat type, assemble strict need-to-know team only.',
+        actions:[
+          {t:'Confirm insider indicators — rule out compromised account first',o:'SOC Analyst',c:true},
+          {t:'Raise RESTRICTED ticket — limited access, code reference only',o:'Incident Commander',c:true},
+          {t:'Assemble covert team — CISO, HR Director, Legal, DPO ONLY',o:'Incident Commander',c:true},
+          {t:'Classify threat — malicious vs negligent vs accidental',o:'IC / HR / Legal',c:false},
+        ],
+        blockers:['Waiting: intent classification confirmed'],
+        decisions:['Malicious or negligent? → determines pace, covert monitoring, HR process']
+      },
+      { name:'Contain', obj:'Legal authorisation for monitoring, covert evidence gathering, do not tip off the subject.',
+        actions:[
+          {t:'Legal authorisation for covert monitoring — RIPA compliance documented',o:'Legal',c:true},
+          {t:'Enable enhanced DLP, mailbox audit, USB monitoring covertly',o:'SOC (under Legal direction)',c:true},
+          {t:'Legal Hold on mailbox and OneDrive — DO NOT DELETE anything',o:'IT Ops',c:true},
+          {t:'Forensic evidence — disk image, audit log export, badge access records',o:'SOC Analyst',c:false},
+          {t:'Quantify full scope — all data accessed and exfiltrated during window',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: Legal authorisation documented','Waiting: full evidence picture before HR action'],
+        decisions:['Malicious → accelerate to overt action','When to coordinate account suspension + HR meeting? — must be simultaneous']
+      },
+      { name:'Eradicate', obj:'HR disciplinary action, complete offboarding, data recovery and legal remedies.',
+        actions:[
+          {t:'HR formal investigation meeting — ACAS Code compliant, right to be accompanied',o:'HR Director',c:true},
+          {t:'Simultaneous: disable account + physical access at moment HR meeting begins',o:'IT Ops + HR',c:true},
+          {t:'Complete digital offboarding — all accounts, tokens, cloud, SaaS, shared creds',o:'IT Ops',c:true},
+          {t:'Data recovery options — court injunction, competitor notification, device seizure',o:'Legal',c:false},
+        ],
+        blockers:['Waiting: HR meeting completed','Waiting: Legal sign-off on external notifications'],
+        decisions:['Police referral? — Computer Misuse Act, Fraud Act','Civil injunction for IP protection?']
+      },
+      { name:'Recover', obj:'Restore systems, regulatory notifications, access control remediation.',
+        actions:[
+          {t:'Restore/validate any systems subject had write access to — sabotage check',o:'IT Ops',c:true},
+          {t:'ICO notification if personal data was exfiltrated',o:'DPO',c:false},
+          {t:'Police / Action Fraud referral if criminal offence suspected',o:'Legal',c:false},
+          {t:'Board briefing — managed carefully if subject is a senior employee',o:'CISO',c:false},
+        ],
+        blockers:['Waiting: HR process conclusion'],decisions:['FCA notification if regulated firm?']
+      },
+      { name:'Post-Incident', obj:'Access control improvements, insider threat programme strengthening, UEBA deployment.',
+        actions:[
+          {t:'PIR — access control failures, detection delay, offboarding gaps',o:'Incident Commander',c:false},
+          {t:'Deploy UEBA, enforce least-privilege, strengthen offboarding process',o:'CISO',c:false},
+          {t:'Update Data Breach Register (mandatory UK GDPR Article 33(5))',o:'DPO',c:true},
+          {t:'Evidence retention schedule — agree with Legal before archiving',o:'Legal / DPO',c:false},
+          {t:'Close restricted IR ticket — DPO and Legal sign-off required',o:'Incident Commander',c:false},
+        ],
+        blockers:[],decisions:[]
+      }
+    ]
+  },
+  ddos: {
+    name:'DDoS / Denial of Service', short:'DDOS', icon:'⚡',
+    color:'#38BDF8', rgb:'56,189,248',
+    clocks:[],
+    playbookFile:'DDoS IR Playbook',
+    phases:[
+      { name:'Detect', obj:'Confirm DDoS vs infrastructure failure, characterise the attack type, identify targeted services.',
+        actions:[
+          {t:'Confirm DDoS vs infrastructure failure vs flash crowd — check NetFlow/traffic counters',o:'NOC Lead',c:true},
+          {t:'Raise P1 ticket — log attack start time (UTC), affected services',o:'Incident Commander',c:true},
+          {t:'Convene bridge + call ISP NOC and CDN provider IN PARALLEL — not after',o:'Incident Commander',c:true},
+          {t:'Characterise attack — layer (L3/L4/L7/DNS), volume (Gbps/Mpps), source distribution',o:'NOC Lead',c:false},
+          {t:'Check for concurrent intrusion attempt — DDoS is often a smokescreen',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: attack characterisation complete','Waiting: ISP NOC on the call'],
+        decisions:['Ransom DDoS demand received? → DO NOT PAY, report to police, notify insurer']
+      },
+      { name:'Contain', obj:'Activate scrubbing/CDN protection, engage ISP for upstream mitigation, implement local filtering.',
+        actions:[
+          {t:'Activate CDN/scrubbing provider emergency line — escalate to "Under Attack" mode',o:'NOC Lead',c:true},
+          {t:'Call ISP NOC — request BGP blackhole or upstream scrubbing activation',o:'NOC Lead',c:true},
+          {t:'Implement local filtering — SYN cookies, rate limiting, geo-block if appropriate',o:'NOC Lead',c:true},
+          {t:'Update status page — every 15 minutes minimum while service is degraded',o:'Comms',c:true},
+          {t:'If ransom demand: notify Action Fraud, NCSC, cyber insurer immediately',o:'CISO / Legal',c:false},
+        ],
+        blockers:['Waiting: ISP upstream scrubbing active (5-15 min activation time)','Waiting: mitigation effectiveness confirmed'],
+        decisions:['BGP blackhole will take target IP offline — acceptable given current impact?']
+      },
+      { name:'Tune / Stabilise', obj:'Tune mitigation to minimise false positives, confirm attack is subsiding, monitor for re-attack.',
+        actions:[
+          {t:'Monitor mitigation effectiveness — blocked vs legitimate traffic ratio',o:'NOC Lead',c:true},
+          {t:'Reduce false positives — adjust rate limits if legitimate users are being blocked',o:'NOC Lead',c:true},
+          {t:'Identify attack source infrastructure — capture PCAP for law enforcement',o:'SOC Analyst',c:false},
+          {t:'4-hour monitoring hold after attack appears to subside — watch for re-attack',o:'NOC Lead',c:false},
+        ],
+        blockers:['Waiting: 4-hour clean observation window'],decisions:[]
+      },
+      { name:'Recover', obj:'Full service restoration, SLA breach notifications, regulatory and law enforcement reports.',
+        actions:[
+          {t:'Restore full service — gradually lift emergency rules, monitor after each change',o:'NOC Lead',c:true},
+          {t:'Keep scrubbing/CDN protection active minimum 24hrs after last attack traffic',o:'NOC Lead',c:true},
+          {t:'Issue SLA breach notifications — calculate exact downtime (IC: 0300 123 2040)',o:'Comms / Legal',c:false},
+          {t:'Submit cyber insurance claim — business interruption, provide traffic logs',o:'CISO',c:false},
+        ],
+        blockers:['Waiting: full service confirmed restored'],decisions:[]
+      },
+      { name:'Post-Incident', obj:'MTTR review, capacity planning, automation improvements, schedule DDoS simulation.',
+        actions:[
+          {t:'PIR — MTTR analysis, ISP call-to-activation time, legitimate user impact',o:'Incident Commander',c:false},
+          {t:'Upgrade scrubbing capacity if attack approached limits — before next incident',o:'CTO / NOC',c:false},
+          {t:'Automate mitigation trigger — eliminate manual ISP call from critical path',o:'NOC / Network',c:false},
+          {t:'Update ISP contact list and schedule DDoS simulation within 90 days',o:'CISO',c:false},
+        ],
+        blockers:[],decisions:[]
+      }
+    ]
+  },
+  phishing: {
+    name:'Phishing / Credential Theft', short:'PHISHING', icon:'🎣',
+    color:'#2DD4BF', rgb:'45,212,191',
+    clocks:[{label:'ICO 72hr — if personal data accessed in dwell window',hours:72,trigger:'If attacker accessed personal data from compromised account'}],
+    playbookFile:'Phishing / Credential Theft IR Playbook',
+    phases:[
+      { name:'Detect', obj:'Confirm phishing event, analyse full email headers, scope the campaign — who received, clicked, submitted.',
+        actions:[
+          {t:'Confirm phishing — full header analysis, URL to URLScan.io/VirusTotal (not corporate browser)',o:'SOC Analyst',c:true},
+          {t:'Raise ticket — P1 if credentials confirmed compromised, P2 if clicked only',o:'Incident Commander',c:true},
+          {t:'Convene bridge — add Identity team if creds may be compromised',o:'Incident Commander',c:true},
+          {t:'Scope campaign — delivered, clicked, submitted creds, completed MFA (AiTM risk)',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: full campaign scope confirmed'],
+        decisions:['AiTM suspected? → session token revocation, NOT just password reset']
+      },
+      { name:'Contain', obj:'Pull email from all mailboxes NOW. Block domain everywhere. Identify compromised accounts.',
+        actions:[
+          {t:'⚡ PULL email from ALL mailboxes — M365 Purge/gateway recall NOW',o:'Email Admin',c:true},
+          {t:'Block phishing domain/URL — email gateway, DNS sinkhole, web proxy, firewall',o:'SOC Analyst',c:true},
+          {t:'Identify all users who clicked + submitted credentials (sign-in log correlation)',o:'SOC Analyst',c:true},
+          {t:'AiTM/session theft? — revoke ALL tokens FIRST, then force password reset',o:'Identity Team',c:true},
+          {t:'Preserve evidence — .eml with headers, phishing page HTML, click telemetry',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: email fully pulled from all mailboxes confirmed','Waiting: all compromised accounts identified'],
+        decisions:['AiTM vs standard phishing → determines whether password reset alone is sufficient']
+      },
+      { name:'Eradicate', obj:'Credential reset in correct order, remove mailbox persistence, phishing site takedown.',
+        actions:[
+          {t:'Revoke all tokens FIRST → force password reset → wipe MFA → supervised re-enrol',o:'Identity Team',c:true},
+          {t:'Remove mailbox persistence — mail rules, OAuth apps, MFA devices, trusted devices',o:'IT Ops',c:true},
+          {t:'Phishing site takedown — NCSC (report@phishing.gov.uk), registrar, Google SafeBrowsing',o:'SOC Analyst',c:false},
+          {t:'Investigate attacker dwell window — what did they access? mail rules set?',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: all accounts remediated and MFA re-enrolled'],decisions:[]
+      },
+      { name:'Recover', obj:'Restore accounts, regulatory notifications, user briefing and awareness communication.',
+        actions:[
+          {t:'Restore accounts — new creds, supervised MFA re-enrol, 30-day enhanced monitoring',o:'Identity Team',c:true},
+          {t:'ICO notification assessment — DPO: was personal data accessed during dwell window?',o:'DPO',c:false},
+          {t:'User notification — brief affected users, all-staff notice, THANK the reporter',o:'Comms / Security',c:false},
+        ],
+        blockers:['Waiting: all accounts restored and validated clean'],decisions:[]
+      },
+      { name:'Post-Incident', obj:'Detection gap analysis, email hardening, phishing simulation within 30 days.',
+        actions:[
+          {t:'PIR — how did it bypass gateway? click-to-detection time? AiTM bypass?',o:'Incident Commander',c:false},
+          {t:'Email hardening — DMARC enforce, phishing-resistant MFA, CAE, block new domains',o:'CISO',c:false},
+          {t:'Schedule phishing simulation within 30 days — highest improvement window',o:'Security Awareness',c:false},
+          {t:'Feed IOCs to SIEM/TIP and email gateway vendor, close IR ticket',o:'SOC Lead',c:false},
+        ],
+        blockers:[],decisions:[]
+      }
+    ]
+  },
+  unauth: {
+    name:'Unauthorised Access / Account Compromise', short:'UNAUTH ACCESS', icon:'🔓',
+    color:'#E879F9', rgb:'232,121,249',
+    clocks:[{label:'ICO 72hr — if personal data accessible',hours:72,trigger:'If attacker accessed systems containing personal data'}],
+    playbookFile:'Unauthorised Access IR Playbook',
+    phases:[
+      { name:'Detect', obj:'Confirm unauthorised access, establish dwell time, map access depth, determine current attacker status.',
+        actions:[
+          {t:'Confirm access — rule out legitimate user travel anomaly / IT admin activity',o:'SOC Analyst',c:true},
+          {t:'Raise ticket — P1 if privileged account or active session confirmed',o:'Incident Commander',c:true},
+          {t:'Convene bridge — add Network team if lateral movement suspected',o:'Incident Commander',c:true},
+          {t:'Establish dwell time — search sign-in logs as far back as retention allows',o:'SOC Analyst',c:true},
+          {t:'Map full access depth — all systems and data touched during dwell window',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: dwell time established','Waiting: full access scope mapped'],
+        decisions:['Is the attacker still active? → scope first, lock out second unless active harm occurring','Privileged account? → assume full environment compromise']
+      },
+      { name:'Contain', obj:'Terminate attacker access, identify and close all persistence mechanisms, scope full compromise.',
+        actions:[
+          {t:'Revoke all sessions, disable compromised accounts, block attacker IPs',o:'Identity / SOC',c:true},
+          {t:'Identify and remove all persistence — web shells, scheduled tasks, rogue accounts, OAuth, cloud IAM',o:'SOC Analyst',c:true},
+          {t:'Privileged account? — krbtgt double reset, full credential sweep, check DCSync',o:'Identity Team',c:true},
+          {t:'Isolated vs full environment compromise decision — scale response accordingly',o:'Incident Commander',c:false},
+          {t:'Preserve forensic evidence — memory, disk images, cloud audit logs, sign-in logs',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: all persistence mechanisms identified','Waiting: scope decision — isolated or full compromise?'],
+        decisions:['Full environment compromise? → consider engaging external IR firm','krbtgt compromised? → double reset with 10hr gap required']
+      },
+      { name:'Eradicate', obj:'Full credential sweep by priority, remove all attacker tools, 48hr validation observation.',
+        actions:[
+          {t:'Full credential reset by priority — DA, krbtgt, service accounts, cloud IAM, API keys',o:'Identity Team',c:true},
+          {t:'Remove all attacker tools, malware, modified configs, web shells, rogue accounts',o:'SOC Analyst',c:true},
+          {t:'Patch / close initial access vector across all in-scope systems',o:'IT Ops',c:true},
+          {t:'48hr observation window — zero C2, no new auth attempts, no rogue accounts',o:'SOC Analyst',c:false},
+        ],
+        blockers:['Waiting: 48-hour clean observation window'],decisions:[]
+      },
+      { name:'Recover', obj:'Staged system restoration, regulatory notifications, affected individual and third-party notification.',
+        actions:[
+          {t:'Restore systems — rebuild from SOE or restore from pre-dwell clean backup',o:'IT Ops',c:true},
+          {t:'ICO notification — 72hr window if personal data was accessible from compromised systems',o:'DPO',c:true},
+          {t:'NCSC notification for significant incidents, Action Fraud / NCA referral',o:'CISO / Legal',c:false},
+          {t:'Notify affected individuals if personal data was at high risk',o:'Legal / DPO',c:false},
+          {t:'Board briefing — scope, regulatory status, recovery timeline',o:'CISO',c:false},
+        ],
+        blockers:['Waiting: ICO notification submitted'],decisions:['FCA notification required if regulated firm?']
+      },
+      { name:'Post-Incident', obj:'Attack path reconstruction, identity and access hardening, MITRE ATT&CK mapping, purple team exercise.',
+        actions:[
+          {t:'PIR — full attack path, dwell time, why priv escalation succeeded',o:'Incident Commander',c:false},
+          {t:'Harden: MFA everywhere, PAM, PAW, network segmentation, deception tech, UEBA',o:'CISO',c:false},
+          {t:'Map attack to MITRE ATT&CK — build specific detection rules for each TTP used',o:'SOC Lead',c:false},
+          {t:'Schedule purple team exercise within 90 days targeting the same TTPs',o:'CISO',c:false},
+          {t:'Close IR ticket — MTTD/MTTR metrics, PIR attached',o:'Incident Commander',c:false},
+        ],
+        blockers:[],decisions:[]
+      }
+    ]
+  }
+};
+
+/* ══════════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════════ */
+let state = {
+  incidentType: null,
+  ref: '', name: '', severity: 'P1',
+  discovery: '', systems: [], dataAtRisk: '',
+  startTime: null,
+  currentPhase: 0,
+  team: [],
+  actions: [],
+  blockers: [],
+  decisions: [],
+  log: [],
+  regClocks: [],
+  logoCompany: null,
+  logoCustomer: null,
+  phaseHistory: [],   // saved snapshots of each completed phase
+  iocs: [],           // {id, type, value, source, confidence, timestamp}
+  iocFilter: null     // currently active type filter
+};
+
+/* ══════════════════════════════════════════════════════════════
+   LOGO HANDLING
+══════════════════════════════════════════════════════════════ */
+let pendingLogoTarget = null;
+
+function triggerLogoUpload(target) {
+  pendingLogoTarget = target;
+  const inp = document.getElementById('logo-file-input');
+  inp.value = '';
+  inp.click();
+}
+
+function triggerLogoSwap(target) {
+  triggerLogoUpload(target);
+}
+
+function handleLogoUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    if (pendingLogoTarget === 'company') {
+      state.logoCompany = dataUrl;
+    } else {
+      state.logoCustomer = dataUrl;
+    }
+    applyLogos();
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function applyLogos() {
+  // Setup previews
+  ['company','customer'].forEach(t => {
+    const data = t === 'company' ? state.logoCompany : state.logoCustomer;
+    const preview = document.getElementById('lua-preview-' + t);
+    const change  = document.getElementById('lua-change-' + t);
+    const lua     = document.getElementById('lua-' + t);
+    const hint    = lua ? lua.querySelector('.lua-hint') : null;
+    const icon    = lua ? lua.querySelector('.lua-icon') : null;
+    if (data && preview) {
+      preview.src = data;
+      preview.style.display = 'block';
+      if (change)  change.style.display = 'block';
+      if (hint)    hint.style.display   = 'none';
+      if (icon)    icon.style.display   = 'none';
+      if (lua)     lua.classList.add('has-logo');
+    }
+    // Topbar slots
+    const img = document.getElementById('tls-' + t + '-img');
+    const ph  = document.getElementById('tls-' + t + '-ph');
+    if (data && img) {
+      img.src = data;
+      img.style.display = 'block';
+      if (ph) ph.style.display = 'none';
+    }
+  });
+}
+let timerId = null;
+let actionCounter = 0;
+let memberCounter = 0;
+let blockerCounter = 0;
+let decisionCounter = 0;
+let setupMembers = [];
+
+/* ══════════════════════════════════════════════════════════════
+   SETUP
+══════════════════════════════════════════════════════════════ */
+function selectThreat(el) {
+  document.querySelectorAll('.threat-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  const type = el.dataset.type;
+  const color = el.dataset.color;
+  const rgb = el.dataset.rgb;
+  state.incidentType = type;
+  document.documentElement.style.setProperty('--accent', color);
+  document.documentElement.style.setProperty('--accent-rgb', rgb);
+  document.querySelectorAll('.threat-card').forEach(c => {
+    c.style.borderTopColor = c.classList.contains('selected') ? color : 'transparent';
+  });
+  checkActivate();
+}
+
+function checkActivate() {
+  const btn = document.getElementById('activate-btn');
+  btn.disabled = !state.incidentType;
+}
+
+function quickAddMember(name, role) {
+  setupMembers.push({id: ++memberCounter, name, role, status:'on'});
+  renderSetupMembers();
+}
+
+function addSetupMember() {
+  const name = document.getElementById('f-mem-name').value.trim();
+  const role = document.getElementById('f-mem-role').value.trim();
+  if (!name) return;
+  setupMembers.push({id: ++memberCounter, name, role: role || '—', status:'on'});
+  document.getElementById('f-mem-name').value = '';
+  document.getElementById('f-mem-role').value = '';
+  renderSetupMembers();
+}
+
+function renderSetupMembers() {
+  const el = document.getElementById('setup-members');
+  el.innerHTML = setupMembers.map(m => `
+    <div class="member-row">
+      <input class="field-input" value="${m.name}" readonly style="flex:1.5">
+      <input class="field-input" value="${m.role}" readonly style="flex:1">
+      <button class="btn-remove" onclick="removeSetupMember(${m.id})">✕</button>
+    </div>`).join('');
+}
+
+function removeSetupMember(id) {
+  setupMembers = setupMembers.filter(m => m.id !== id);
+  renderSetupMembers();
+}
+
+function activateWarRoom() {
+  const pb = PLAYBOOKS[state.incidentType];
+  state.name = document.getElementById('f-name').value.trim() || pb.name + ' — Active Incident';
+  state.severity = document.getElementById('f-sev').value;
+  state.discovery = document.getElementById('f-discovery').value;
+  const sysRaw = document.getElementById('f-systems').value.trim();
+  state.systems = sysRaw ? sysRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
+  state.dataAtRisk = document.getElementById('f-data').value.trim() || 'Under assessment';
+  const refVal = document.getElementById('f-ref').value.trim();
+  state.ref = refVal || 'IR-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*9000)+1000);
+  state.startTime = Date.now();
+  state.team = setupMembers.map(m => ({...m}));
+  if (state.team.length === 0) state.team.push({id:++memberCounter, name:'Incident Commander', role:'IC', status:'on'});
+
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('warroom').classList.remove('hidden');
+
+  initWarRoom();
+  timerId = setInterval(tick, 1000);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   WAR ROOM INIT
+══════════════════════════════════════════════════════════════ */
+function initWarRoom() {
+  const pb = PLAYBOOKS[state.incidentType];
+
+  // Top bar
+  document.getElementById('tb-ref').textContent = state.ref;
+  document.getElementById('tb-name').textContent = state.name;
+  document.getElementById('tb-threat').textContent = pb.short;
+  const sevEl = document.getElementById('tb-sev');
+  sevEl.textContent = state.severity + (state.severity==='P1'?' CRITICAL':state.severity==='P2'?' HIGH':' MEDIUM');
+  sevEl.className = 'sev-badge sev-' + state.severity.toLowerCase();
+  renderSeverityBadge();
+
+  // Phase track
+  renderPhaseTrack();
+
+  // Intel panel
+  document.getElementById('i-discovery').textContent = state.discovery;
+  renderSystems();
+  document.getElementById('i-data').value = state.dataAtRisk;
+  document.getElementById('playbook-link').innerHTML = `<span style="color:var(--accent)">→ ${pb.playbookFile}</span><br><span style="font-size:10px;color:var(--dim)">Reference your full step-by-step playbook document for detailed guidance on each action.</span>`;
+
+  // Logos
+  applyLogos();
+
+  // Regulatory clocks
+  if (pb.clocks && pb.clocks.length > 0) {
+    document.getElementById('reg-clock-section').style.display = '';
+    state.regClocks = pb.clocks.map(c => ({...c, startTime: state.startTime}));
+    renderRegClocks();
+  }
+
+  // Load phase 0
+  loadPhase(0);
+  renderTeam();
+  addLog('War Room activated — ' + pb.name, 'phase');
+  addLog('Incident Commander assigned, bridge call initiated', 'system');
+  if (state.team.length > 1) addLog(state.team.length + ' responders on bridge call', 'system');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SEVERITY ADJUSTMENT
+══════════════════════════════════════════════════════════════ */
+function adjustSeverity(direction) {
+  const levels = ['P1', 'P2', 'P3'];
+  const labels = { P1: 'CRITICAL', P2: 'HIGH', P3: 'MEDIUM' };
+  const cur = levels.indexOf(state.severity);
+  const next = cur + direction;
+  if (next < 0 || next >= levels.length) return; // already at limit
+  const prev = state.severity;
+  state.severity = levels[next];
+  renderSeverityBadge();
+  const arrow = direction < 0 ? '⬆ ESCALATED' : '⬇ DE-ESCALATED';
+  addLog(`${arrow} — Severity changed from ${prev} ${labels[prev]} → ${state.severity} ${labels[state.severity]}`,
+         direction < 0 ? 'warn' : 'action');
+}
+
+function renderSeverityBadge() {
+  const labels = { P1: 'CRITICAL', P2: 'HIGH', P3: 'MEDIUM' };
+  const el = document.getElementById('tb-sev');
+  el.textContent = state.severity + ' ' + labels[state.severity];
+  el.className   = 'sev-badge sev-' + state.severity.toLowerCase();
+  // Dim the adjuster that's now at a limit
+  const levels = ['P1','P2','P3'];
+  const cur = levels.indexOf(state.severity);
+  document.querySelectorAll('.sev-adj').forEach((btn, i) => {
+    // i=0 is +  (escalate, direction -1), i=1 is − (de-escalate, direction +1)
+    const atLimit = i === 0 ? cur === 0 : cur === levels.length - 1;
+    btn.style.opacity = atLimit ? '0.25' : '1';
+    btn.style.cursor  = atLimit ? 'not-allowed' : 'pointer';
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PHASE MANAGEMENT
+══════════════════════════════════════════════════════════════ */
+function renderPhaseTrack() {
+  const pb = PLAYBOOKS[state.incidentType];
+  const el = document.getElementById('phase-track');
+  el.innerHTML = pb.phases.map((p,i) => `
+    <div class="pt-phase ${i===state.currentPhase?'active':i<state.currentPhase?'done':''}" onclick="jumpPhase(${i})">
+      <div class="pt-num">${i<state.currentPhase?'✓':(i+1)}</div>
+      <div class="pt-label">${p.name}</div>
+    </div>
+    ${i<pb.phases.length-1?'<div class="pt-arrow">›</div>':''}
+  `).join('');
+}
+
+function jumpPhase(i) {
+  if (i === state.currentPhase) return;
+  if (i < state.currentPhase) { loadPhase(i); return; }
+  loadPhase(i);
+}
+
+function loadPhase(phaseIdx) {
+  const pb = PLAYBOOKS[state.incidentType];
+  const phase = pb.phases[phaseIdx];
+  state.currentPhase = phaseIdx;
+
+  // Objective
+  document.getElementById('po-phase-label').textContent = 'PHASE ' + (phaseIdx+1) + ' · ' + phase.name.toUpperCase();
+  document.getElementById('po-text').textContent = phase.obj;
+
+  // Actions — load playbook defaults + keep any existing custom ones
+  const existingCustom = state.actions.filter(a => a.custom);
+  state.actions = phase.actions.map(a => ({
+    id: ++actionCounter,
+    title: a.t,
+    owner: a.o,
+    done: false,
+    waiting: false,
+    critical: a.c,
+    custom: false
+  }));
+  // Append previous custom actions
+  state.actions = [...state.actions, ...existingCustom];
+
+  // Blockers — load phase defaults
+  state.blockers = (phase.blockers||[]).map(b => ({id: ++blockerCounter, text: b, resolved: false}));
+  state.decisions = (phase.decisions||[]).map(d => ({id: ++decisionCounter, text: d, resolved: false}));
+
+  renderActions();
+  renderBlockers();
+  renderDecisions();
+  renderPhaseTrack();
+
+  // Advance button
+  const advBtn = document.getElementById('advance-btn');
+  if (phaseIdx >= pb.phases.length - 1) {
+    advBtn.textContent = '✓ INCIDENT CLOSED';
+    advBtn.disabled = true;
+  } else {
+    advBtn.textContent = 'ADVANCE TO ' + pb.phases[phaseIdx+1].name.toUpperCase() + ' →';
+    advBtn.disabled = false;
+  }
+}
+
+function advancePhase() {
+  const pb = PLAYBOOKS[state.incidentType];
+  if (state.currentPhase >= pb.phases.length - 1) return;
+  // Save snapshot of current phase before advancing
+  state.phaseHistory.push({
+    phaseIndex: state.currentPhase,
+    phaseName:  pb.phases[state.currentPhase].name,
+    actions:    state.actions.map(a => ({...a})),
+    blockers:   state.blockers.map(b => ({...b})),
+    decisions:  state.decisions.map(d => ({...d})),
+    timestamp:  new Date().toISOString()
+  });
+  const nextPhase = state.currentPhase + 1;
+  const flash = document.getElementById('phase-flash');
+  flash.style.opacity = '1';
+  setTimeout(() => { flash.style.opacity = '0'; }, 400);
+  addLog('Phase advanced → ' + pb.phases[nextPhase].name.toUpperCase(), 'phase');
+  loadPhase(nextPhase);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RENDER FUNCTIONS
+══════════════════════════════════════════════════════════════ */
+function renderActions() {
+  const el = document.getElementById('action-list');
+  if (state.actions.length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--dim);padding:8px 0">No actions — use \'+ ADD\' to create custom actions</div>';
+    return;
+  }
+  el.innerHTML = state.actions.map(a => {
+    const statusBadge = a.done
+      ? '<span class="action-status-badge ab-done">DONE</span>'
+      : a.waiting
+        ? '<span class="action-status-badge ab-waiting">WAITING</span>'
+        : a.critical
+          ? '<span class="action-status-badge ab-critical">CRITICAL</span>'
+          : '<span class="action-status-badge ab-active">ACTIVE</span>';
+    const checkChar = a.done ? '✓' : a.waiting ? '⏳' : '';
+    return `
+    <div class="action-item ${a.done?'done':a.waiting?'waiting':''} ${a.critical&&!a.done?'critical':''}" id="ai-${a.id}">
+      <div class="action-check" onclick="toggleAction(${a.id})">${checkChar}</div>
+      <div class="action-body">
+        <div class="action-title">${a.title}</div>
+        <div class="action-meta">
+          <div class="action-owner">→ ${a.owner}</div>
+          ${statusBadge}
+        </div>
+      </div>
+      <div class="action-controls">
+        <button class="ac-btn" title="Mark waiting" onclick="toggleWaiting(${a.id})">⏳</button>
+        <button class="ac-btn" title="Remove" onclick="removeAction(${a.id})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleAction(id) {
+  const a = state.actions.find(x => x.id === id);
+  if (!a) return;
+  a.done = !a.done;
+  if (a.done) a.waiting = false;
+  renderActions();
+  if (a.done) addLog('Action completed: ' + a.title.substring(0,50) + (a.title.length>50?'...':''), 'action');
+}
+
+function toggleWaiting(id) {
+  const a = state.actions.find(x => x.id === id);
+  if (!a || a.done) return;
+  a.waiting = !a.waiting;
+  renderActions();
+  if (a.waiting) addLog('Action blocked: ' + a.title.substring(0,50), 'warn');
+}
+
+function removeAction(id) {
+  state.actions = state.actions.filter(x => x.id !== id);
+  renderActions();
+}
+
+function addCustomAction() {
+  const title = document.getElementById('new-action-title').value.trim();
+  const owner = document.getElementById('new-action-owner').value.trim() || 'Unassigned';
+  if (!title) return;
+  state.actions.push({id: ++actionCounter, title, owner, done:false, waiting:false, critical:false, custom:true});
+  document.getElementById('new-action-title').value = '';
+  document.getElementById('new-action-owner').value = '';
+  renderActions();
+  addLog('Action added: ' + title.substring(0,50), 'action');
+}
+
+function renderTeam() {
+  const el = document.getElementById('team-list');
+  el.innerHTML = state.team.map(m => `
+    <div class="team-member tm-${m.status}">
+      <div class="tm-dot" onclick="cycleTeamStatus(${m.id})" title="Click to change status"></div>
+      <div class="tm-info">
+        <div class="tm-name">${m.name}</div>
+        <div class="tm-role">${m.role}</div>
+      </div>
+      <div class="tm-status">${m.status==='on'?'ON CALL':m.status==='away'?'AWAY':'OFFLINE'}</div>
+      <button class="btn-remove" onclick="removeTeamMember(${m.id})">✕</button>
+    </div>`).join('');
+}
+
+function cycleTeamStatus(id) {
+  const m = state.team.find(x => x.id === id);
+  if (!m) return;
+  const cycle = {on:'away', away:'off', off:'on'};
+  m.status = cycle[m.status];
+  renderTeam();
+}
+
+function addTeamMember() {
+  const name = document.getElementById('rt-name').value.trim();
+  const role = document.getElementById('rt-role').value.trim() || '—';
+  if (!name) return;
+  state.team.push({id: ++memberCounter, name, role, status:'on'});
+  document.getElementById('rt-name').value = '';
+  document.getElementById('rt-role').value = '';
+  renderTeam();
+  addLog(name + ' (' + role + ') joined the bridge', 'system');
+}
+
+function removeTeamMember(id) {
+  const m = state.team.find(x => x.id === id);
+  state.team = state.team.filter(x => x.id !== id);
+  renderTeam();
+  if (m) addLog(m.name + ' left the bridge', 'system');
+}
+
+function renderBlockers() {
+  const el = document.getElementById('blocker-list');
+  el.innerHTML = state.blockers.length === 0
+    ? '<div style="font-size:11px;color:var(--dim)">No active blockers</div>'
+    : state.blockers.map(b => `
+    <div class="blocker-item ${b.resolved?'resolved':''}">
+      <div class="blocker-cb ${b.resolved?'resolved':''}" onclick="resolveBlocker(${b.id})">${b.resolved?'✓':''}</div>
+      <div class="blocker-text">${b.text}</div>
+      <button class="btn-remove" onclick="removeBlocker(${b.id})">✕</button>
+    </div>`).join('');
+}
+
+function addBlocker() {
+  const text = document.getElementById('new-blocker').value.trim();
+  if (!text) return;
+  state.blockers.push({id: ++blockerCounter, text, resolved:false});
+  document.getElementById('new-blocker').value = '';
+  renderBlockers();
+  addLog('Blocker added: ' + text.substring(0,60), 'warn');
+}
+
+function resolveBlocker(id) {
+  const b = state.blockers.find(x => x.id === id);
+  if (b) { b.resolved = !b.resolved; renderBlockers(); if (b.resolved) addLog('Blocker resolved: ' + b.text.substring(0,60), 'action'); }
+}
+
+function removeBlocker(id) {
+  state.blockers = state.blockers.filter(x => x.id !== id);
+  renderBlockers();
+}
+
+function renderDecisions() {
+  const el = document.getElementById('decision-list');
+  el.innerHTML = state.decisions.length === 0
+    ? '<div style="font-size:11px;color:var(--dim)">No pending decisions</div>'
+    : state.decisions.map(d => `
+    <div class="decision-item ${d.resolved?'resolved':''}">
+      <div class="decision-cb ${d.resolved?'resolved':''}" onclick="resolveDecision(${d.id})">${d.resolved?'✓':''}</div>
+      <div class="blocker-text">${d.text}</div>
+      <button class="btn-remove" onclick="removeDecision(${d.id})">✕</button>
+    </div>`).join('');
+}
+
+function addDecision() {
+  const text = document.getElementById('new-decision').value.trim();
+  if (!text) return;
+  state.decisions.push({id: ++decisionCounter, text, resolved:false});
+  document.getElementById('new-decision').value = '';
+  renderDecisions();
+  addLog('Decision needed: ' + text.substring(0,60), 'warn');
+}
+
+function resolveDecision(id) {
+  const d = state.decisions.find(x => x.id === id);
+  if (d) { d.resolved = !d.resolved; renderDecisions(); if (d.resolved) addLog('Decision made: ' + d.text.substring(0,60), 'action'); }
+}
+
+function removeDecision(id) {
+  state.decisions = state.decisions.filter(x => x.id !== id);
+  renderDecisions();
+}
+
+function renderSystems() {
+  const el = document.getElementById('i-systems');
+  el.innerHTML = state.systems.map((s,i) => `<div class="stag" ondblclick="removeSystem(${i})" title="Double-click to remove">${s}</div>`).join('')
+    + `<button class="stag stag-add" onclick="addSystem()">+ add</button>`;
+}
+
+function addSystem() {
+  const s = prompt('Add affected system:');
+  if (s && s.trim()) { state.systems.push(s.trim()); renderSystems(); addLog('Affected system added: ' + s.trim(), 'warn'); }
+}
+
+function removeSystem(i) {
+  state.systems.splice(i,1); renderSystems();
+}
+
+function renderRegClocks() {
+  const el = document.getElementById('reg-clocks');
+  el.innerHTML = state.regClocks.map((c,i) => `
+    <div class="reg-clock" id="rc-${i}">
+      <div class="rc-label">${c.label}</div>
+      <div class="rc-time" id="rct-${i}">—</div>
+      <div class="rc-bar-wrap"><div class="rc-bar" id="rcb-${i}" style="width:100%"></div></div>
+      <div class="rc-status" id="rcs-${i}" style="color:var(--dim);font-size:9px">${c.trigger}</div>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TIMER & CLOCKS
+══════════════════════════════════════════════════════════════ */
+function tick() {
+  updateElapsed();
+  updateRegClocks();
+}
+
+function updateElapsed() {
+  const elapsed = Date.now() - state.startTime;
+  document.getElementById('elapsed').textContent = formatDuration(elapsed);
+}
+
+function updateRegClocks() {
+  if (!state.regClocks) return;
+  state.regClocks.forEach((c,i) => {
+    const totalMs = c.hours * 3600000;
+    const elapsed = Date.now() - c.startTime;
+    const remaining = totalMs - elapsed;
+    const el = document.getElementById('rct-'+i);
+    const bar = document.getElementById('rcb-'+i);
+    const rc = document.getElementById('rc-'+i);
+    const status = document.getElementById('rcs-'+i);
+    if (!el) return;
+    if (remaining <= 0) {
+      el.textContent = '⚠ EXPIRED';
+      bar.style.width = '0%';
+      rc.classList.add('urgent');
+      status.textContent = 'DEADLINE PASSED — ESCALATE IMMEDIATELY';
+      status.style.color = '#EF4444';
+    } else {
+      el.textContent = formatDuration(remaining);
+      const pct = (remaining / totalMs) * 100;
+      bar.style.width = pct + '%';
+      if (remaining < 3600000) { rc.classList.add('urgent'); bar.style.background = '#EF4444'; status.style.color='#EF4444'; }
+      else if (remaining < 14400000) { bar.style.background = '#F59E0B'; status.style.color='#FCD34D'; }
+    }
+  });
+}
+
+function formatDuration(ms) {
+  if (ms < 0) ms = 0;
+  const h = Math.floor(ms/3600000);
+  const m = Math.floor((ms%3600000)/60000);
+  const s = Math.floor((ms%60000)/1000);
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ACTIVITY LOG
+══════════════════════════════════════════════════════════════ */
+function addLog(text, type='note') {
+  const now = new Date();
+  const time = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+  state.log.unshift({time, text, type});
+  renderLog();
+}
+
+function renderLog() {
+  const el = document.getElementById('log-entries');
+  el.innerHTML = state.log.map(e => `
+    <div class="log-entry le-${e.type}">
+      <div class="le-time">${e.time}</div>
+      <div class="le-dot"></div>
+      <div class="le-text">${e.text}</div>
+    </div>`).join('');
+}
+
+function addManualLog() {
+  const input = document.getElementById('log-input');
+  const text = input.value.trim();
+  if (!text) return;
+  addLog(text, 'note');
+  input.value = '';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   IOC TRACKER
+══════════════════════════════════════════════════════════════ */
+let iocCounter = 0;
+
+const IOC_META = {
+  ip:       {label:'IP',       icon:'🌐'},
+  domain:   {label:'Domain',   icon:'🔗'},
+  url:      {label:'URL',      icon:'🔒'},
+  hash:     {label:'Hash',     icon:'🔑'},
+  email:    {label:'Email',    icon:'✉'},
+  file:     {label:'File',     icon:'📄'},
+  registry: {label:'Registry', icon:'🗝'},
+  cve:      {label:'CVE',      icon:'⚡'},
+  btc:      {label:'BTC',      icon:'₿'},
+  other:    {label:'Other',    icon:'◎'}
+};
+
+function addIOC() {
+  const type  = document.getElementById('ioc-type').value;
+  const value = document.getElementById('ioc-value').value.trim();
+  const src   = document.getElementById('ioc-source').value.trim() || 'Unknown source';
+  const conf  = document.getElementById('ioc-confidence').value;
+  if (!value) { document.getElementById('ioc-value').focus(); return; }
+
+  const now = new Date();
+  const ts  = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+  state.iocs.push({ id: ++iocCounter, type, value, source: src, confidence: conf, timestamp: ts, added: now.toISOString() });
+
+  document.getElementById('ioc-value').value  = '';
+  document.getElementById('ioc-source').value = '';
+
+  renderIOCs();
+  addLog('IOC added [' + IOC_META[type].label + ']: ' + value.substring(0, 60) + (value.length > 60 ? '...' : ''), 'warn');
+}
+
+function removeIOC(id) {
+  const ioc = state.iocs.find(x => x.id === id);
+  state.iocs = state.iocs.filter(x => x.id !== id);
+  renderIOCs();
+  if (ioc) addLog('IOC removed: ' + ioc.value.substring(0, 50), 'note');
+}
+
+function toggleIOCConf(id) {
+  const ioc = state.iocs.find(x => x.id === id);
+  if (!ioc) return;
+  ioc.confidence = ioc.confidence === 'confirmed' ? 'unconfirmed' : 'confirmed';
+  renderIOCs();
+}
+
+function setIOCFilter(type) {
+  state.iocFilter = state.iocFilter === type ? null : type;
+  renderIOCs();
+}
+
+function renderIOCs() {
+  const totalBadge = document.getElementById('ioc-total-badge');
+  totalBadge.textContent = state.iocs.length + ' IOC' + (state.iocs.length !== 1 ? 's' : '');
+
+  // Summary filter bar
+  const summaryBar = document.getElementById('ioc-summary-bar');
+  const counts = {};
+  state.iocs.forEach(ioc => { counts[ioc.type] = (counts[ioc.type] || 0) + 1; });
+  let sumHtml = '<span style="font-family:var(--mono);font-size:9px;color:var(--dim)">Filter:</span>';
+  Object.entries(counts).forEach(([type, count]) => {
+    const m = IOC_META[type];
+    const active = state.iocFilter === type ? ' active' : '';
+    sumHtml += `<span class="ioc-sum-item${active}" onclick="setIOCFilter('${type}')">
+      <span class="ioc-type-tag ioc-${type}">${m.label}</span>
+      <span class="ioc-sum-count" style="color:var(--text)">${count}</span>
+    </span>`;
+  });
+  if (state.iocFilter) {
+    sumHtml += `<span class="ioc-filter-clear" onclick="setIOCFilter(null)">✕ clear</span>`;
+  }
+  summaryBar.innerHTML = sumHtml;
+
+  // IOC list
+  const listEl  = document.getElementById('ioc-list');
+  const emptyEl = document.getElementById('ioc-empty');
+  const filtered = state.iocFilter ? state.iocs.filter(x => x.type === state.iocFilter) : state.iocs;
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="ioc-empty">${state.iocs.length === 0 ? 'No IOCs logged yet — add below' : 'No IOCs of this type'}</div>`;
+    return;
+  }
+
+  listEl.innerHTML = filtered.slice().reverse().map(ioc => {
+    const m = IOC_META[ioc.type];
+    return `
+    <div class="ioc-row ${ioc.confidence}" id="ioc-${ioc.id}">
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0">
+        <div style="display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap">
+          <span class="ioc-type-tag ioc-${ioc.type}">${m.icon} ${m.label}</span>
+          <span class="ioc-value" title="Click to select/copy">${escHtml(ioc.value)}</span>
+        </div>
+        <div class="ioc-meta">
+          <span class="ioc-source">from: ${escHtml(ioc.source)}</span>
+          <span class="ioc-source" style="color:var(--dim)">· ${ioc.timestamp}</span>
+          <span class="ioc-conf c-${ioc.confidence}" onclick="toggleIOCConf(${ioc.id})">${ioc.confidence === 'confirmed' ? '✓ Confirmed' : '? Unconfirmed'}</span>
+        </div>
+      </div>
+      <button class="btn-remove" onclick="removeIOC(${ioc.id})" title="Remove">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   EXPORT — HTML REPORT
+══════════════════════════════════════════════════════════════ */
+function exportHTMLReport() {
+  const pb   = PLAYBOOKS[state.incidentType];
+  const now  = new Date();
+  const exportTime = now.toLocaleString('en-GB', {dateStyle:'long', timeStyle:'medium'});
+  const duration   = formatDuration(Date.now() - state.startTime);
+  const startStr   = new Date(state.startTime).toLocaleString('en-GB', {dateStyle:'long', timeStyle:'medium'});
+
+  // Build all phases for the report — history + current
+  const allPhases = [...state.phaseHistory, {
+    phaseIndex: state.currentPhase,
+    phaseName:  pb.phases[state.currentPhase].name,
+    actions:    state.actions.map(a => ({...a})),
+    blockers:   state.blockers.map(b => ({...b})),
+    decisions:  state.decisions.map(d => ({...d})),
+    timestamp:  now.toISOString(),
+    isCurrent:  true
+  }];
+
+  const logoLeft  = state.logoCompany  ? `<img src="${state.logoCompany}"  style="max-height:52px;max-width:160px;object-fit:contain">` : '<div class="logo-ph">YOUR COMPANY</div>';
+  const logoRight = state.logoCustomer ? `<img src="${state.logoCustomer}" style="max-height:52px;max-width:160px;object-fit:contain">` : '';
+
+  // IOC type colours for HTML report
+  const IOC_REPORT_COLORS = {
+    ip:'#FEE2E2,#DC2626', domain:'#FFF7ED,#C2410C', url:'#FEFCE8,#A16207',
+    hash:'#EEF2FF,#4338CA', email:'#F0FDFA,#0F766E', file:'#FAF5FF,#7E22CE',
+    registry:'#FDF2F8,#9D174D', cve:'#FFF1F2,#BE123C', btc:'#FFFBEB,#B45309', other:'#F8FAFC,#475569'
+  };
+  const iocSection = state.iocs.length > 0 ? (() => {
+    const byType = {};
+    state.iocs.forEach(ioc => { if (!byType[ioc.type]) byType[ioc.type] = []; byType[ioc.type].push(ioc); });
+    const confirmed   = state.iocs.filter(x => x.confidence === 'confirmed').length;
+    const unconfirmed = state.iocs.filter(x => x.confidence === 'unconfirmed').length;
+    return `
+    <div class="section">
+      <div class="section-title">Indicators of Compromise (IOCs)
+        <span class="badge badge-active">${state.iocs.length} Total</span>
+        <span class="badge" style="background:#D1FAE5;color:#065F46;border:1px solid #6EE7B7">${confirmed} Confirmed</span>
+        ${unconfirmed > 0 ? `<span class="badge" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A">${unconfirmed} Unconfirmed</span>` : ''}
+      </div>
+      <div style="padding:14px 16px">
+        ${Object.entries(byType).map(([type, iocs]) => {
+          const [bg, fg] = IOC_REPORT_COLORS[type].split(',');
+          const meta = IOC_META[type];
+          return `
+          <div style="margin-bottom:16px">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${fg};background:${bg};display:inline-block;padding:3px 9px;border-radius:4px;margin-bottom:8px;border:1px solid ${fg}40">${meta.icon} ${meta.label} — ${iocs.length} indicator${iocs.length > 1 ? 's' : ''}</div>
+            <table style="margin-top:0">
+              <thead><tr><th>Value</th><th style="width:160px">Source</th><th style="width:90px">Confidence</th><th style="width:60px">Time</th></tr></thead>
+              <tbody>${iocs.map((ioc,i) => `
+                <tr class="${i%2===0?'row-alt':''}">
+                  <td style="font-family:monospace;font-size:11px;word-break:break-all">${ioc.value}</td>
+                  <td>${ioc.source}</td>
+                  <td>${ioc.confidence === 'confirmed' ? '<span style="color:#059669;font-weight:600">✓ Confirmed</span>' : '<span style="color:#D97706">? Unconfirmed</span>'}</td>
+                  <td style="font-family:monospace;color:#9CA3AF">${ioc.timestamp}</td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  })() : '';
+
+  const regSection = (state.regClocks && state.regClocks.length > 0) ? `
+    <div class="section">
+      <div class="section-title">Regulatory Clocks</div>
+      <table><thead><tr><th>Clock</th><th>Limit</th><th>Started</th><th>Status at Export</th></tr></thead><tbody>
+      ${state.regClocks.map(c => {
+        const elapsed = Date.now() - c.startTime;
+        const remaining = c.hours * 3600000 - elapsed;
+        const status = remaining <= 0 ? '⚠ EXPIRED' : formatDuration(remaining) + ' remaining';
+        return `<tr><td>${c.label}</td><td>${c.hours}h</td><td>${new Date(c.startTime).toLocaleTimeString('en-GB')}</td><td>${status}</td></tr>`;
+      }).join('')}
+      </tbody></table>
+    </div>` : '';
+
+  const phaseSections = allPhases.map(ph => {
+    const done    = ph.actions.filter(a => a.done).length;
+    const waiting = ph.actions.filter(a => a.waiting && !a.done).length;
+    const active  = ph.actions.filter(a => !a.done && !a.waiting).length;
+    return `
+    <div class="section">
+      <div class="section-title">Phase ${ph.phaseIndex + 1}: ${ph.phaseName} ${ph.isCurrent ? '<span class="badge badge-active">CURRENT PHASE</span>' : '<span class="badge badge-done">COMPLETED</span>'}</div>
+      <div class="phase-stats">
+        <span class="pstat done">✓ ${done} Done</span>
+        <span class="pstat waiting">⏳ ${waiting} Waiting</span>
+        <span class="pstat active">◎ ${active} Active</span>
+      </div>
+      <table><thead><tr><th style="width:48%">Action</th><th>Owner</th><th>Status</th><th>Type</th></tr></thead><tbody>
+      ${ph.actions.map(a => `
+        <tr class="${a.done?'row-done':a.waiting?'row-waiting':''}">
+          <td>${a.title}</td>
+          <td>${a.owner}</td>
+          <td>${a.done ? '✓ Done' : a.waiting ? '⏳ Waiting' : '◎ Active'}</td>
+          <td>${a.critical ? '⚠ Critical' : a.custom ? '✎ Custom' : '— Standard'}</td>
+        </tr>`).join('')}
+      </tbody></table>
+      ${ph.blockers && ph.blockers.length > 0 ? `
+        <div style="margin-top:10px"><strong style="font-size:12px;color:#666">Blockers:</strong>
+        <ul style="margin:4px 0 0 18px;font-size:12px;color:#555">
+        ${ph.blockers.map(b => `<li style="${b.resolved?'text-decoration:line-through;color:#999':''}">${b.text}${b.resolved?' ✓':''}</li>`).join('')}
+        </ul></div>` : ''}
+      ${ph.decisions && ph.decisions.length > 0 ? `
+        <div style="margin-top:8px"><strong style="font-size:12px;color:#666">Decisions:</strong>
+        <ul style="margin:4px 0 0 18px;font-size:12px;color:#555">
+        ${ph.decisions.map(d => `<li style="${d.resolved?'text-decoration:line-through;color:#999':''}">${d.text}${d.resolved?' ✓':''}</li>`).join('')}
+        </ul></div>` : ''}
+    </div>`;
+  }).join('');
+
+  const logRows = [...state.log].reverse().map((e,i) =>
+    `<tr class="${i%2===0?'row-alt':''}">
+      <td style="white-space:nowrap;font-family:monospace;font-size:11px;color:#888">${e.time}</td>
+      <td><span class="log-type log-${e.type}">${e.type.toUpperCase()}</span></td>
+      <td>${e.text}</td>
+    </tr>`).join('');
+
+  const teamRows = state.team.map(m =>
+    `<tr><td>${m.name}</td><td>${m.role}</td><td>${m.status==='on'?'✓ On Call':m.status==='away'?'↷ Away':'✕ Offline'}</td></tr>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IR Report — ${state.ref}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#F8F9FA;color:#1A1A2E;font-size:13px;line-height:1.5}
+  .report-wrap{max-width:1000px;margin:0 auto;padding:0 0 60px}
+
+  /* Header */
+  .report-header{background:#0D1117;color:#E2E8F4;padding:24px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+  .rh-logos{display:flex;align-items:center;justify-content:space-between;width:100%}
+  .rh-left{display:flex;align-items:center;gap:16px}
+  .rh-right{display:flex;align-items:center;gap:16px}
+  .logo-ph{font-family:monospace;font-size:9px;letter-spacing:.15em;color:#444;text-transform:uppercase;border:1px dashed #333;padding:6px 10px;border-radius:4px}
+  .rh-center{text-align:center;flex:1;padding:0 20px}
+  .rh-label{font-family:monospace;font-size:9px;letter-spacing:.2em;color:#666;text-transform:uppercase;margin-bottom:4px}
+  .rh-ref{font-family:monospace;font-size:22px;font-weight:700;color:#E879F9;letter-spacing:.04em}
+  .rh-name{font-size:15px;color:#ccc;margin-top:2px}
+
+  /* Summary bar */
+  .summary-bar{background:#161B27;padding:12px 32px;display:flex;gap:0;flex-wrap:wrap;border-bottom:3px solid ${pb.color}}
+  .sb-item{padding:8px 20px;border-right:1px solid #2a3040;text-align:center;flex:1;min-width:120px}
+  .sb-item:last-child{border-right:none}
+  .sb-label{font-family:monospace;font-size:8px;letter-spacing:.12em;color:#556;text-transform:uppercase;margin-bottom:3px}
+  .sb-val{font-size:13px;font-weight:600;color:#E2E8F4}
+  .sb-val.accent{color:${pb.color}}
+
+  /* Sections */
+  .section{background:#fff;margin:20px 24px 0;border-radius:8px;border:1px solid #E5E7EB;overflow:hidden}
+  .section-title{background:#F3F4F6;padding:10px 16px;font-size:12px;font-weight:700;letter-spacing:.05em;color:#374151;text-transform:uppercase;display:flex;align-items:center;gap:10px;border-bottom:1px solid #E5E7EB}
+  .section > *:not(.section-title){padding:14px 16px}
+
+  /* Tables */
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  thead tr{background:#F9FAFB}
+  th{text-align:left;padding:8px 10px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6B7280;border-bottom:2px solid #E5E7EB}
+  td{padding:8px 10px;border-bottom:1px solid #F3F4F6;color:#374151;vertical-align:top}
+  .row-alt td{background:#FAFAFA}
+  .row-done td{color:#9CA3AF}
+  .row-done td:first-child{text-decoration:line-through}
+  .row-waiting td{color:#92400E;background:#FFFBEB}
+
+  /* Badges */
+  .badge{font-family:monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:2px 7px;border-radius:3px;text-transform:uppercase}
+  .badge-active{background:rgba(16,185,129,.12);color:#059669;border:1px solid rgba(16,185,129,.3)}
+  .badge-done{background:#F3F4F6;color:#9CA3AF;border:1px solid #E5E7EB}
+  .sev-badge-report{padding:4px 10px;border-radius:4px;font-family:monospace;font-size:10px;font-weight:700;letter-spacing:.1em}
+  .sev-p1{background:#FEE2E2;color:#DC2626;border:1px solid #FECACA}
+  .sev-p2{background:#FEF3C7;color:#D97706;border:1px solid #FDE68A}
+  .sev-p3{background:#DBEAFE;color:#2563EB;border:1px solid #BFDBFE}
+
+  /* Phase stats */
+  .phase-stats{display:flex;gap:8px;margin-bottom:12px}
+  .pstat{font-family:monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px}
+  .pstat.done{background:#D1FAE5;color:#065F46}
+  .pstat.waiting{background:#FEF3C7;color:#92400E}
+  .pstat.active{background:#EFF6FF;color:#1D4ED8}
+
+  /* Log types */
+  .log-type{font-family:monospace;font-size:8px;font-weight:700;letter-spacing:.08em;padding:2px 5px;border-radius:3px}
+  .log-system{background:#DBEAFE;color:#1E40AF}
+  .log-action{background:#D1FAE5;color:#065F46}
+  .log-phase{background:#FEF3C7;color:#92400E}
+  .log-warn{background:#FEE2E2;color:#DC2626}
+  .log-note{background:#F3F4F6;color:#6B7280}
+
+  /* Info grid */
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .info-item{}
+  .info-label{font-family:monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:3px}
+  .info-value{font-size:13px;color:#374151;font-weight:500}
+
+  /* Systems */
+  .sys-tags{display:flex;flex-wrap:wrap;gap:6px}
+  .sys-tag{font-family:monospace;font-size:10px;padding:3px 8px;border-radius:3px;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}
+
+  /* Footer */
+  .report-footer{background:#161B27;color:#556;text-align:center;padding:14px;font-family:monospace;font-size:10px;letter-spacing:.06em;margin-top:24px}
+
+  @media print{
+    body{background:#fff}
+    .section{margin:12px 0 0;break-inside:avoid}
+    .summary-bar{background:#eee;color:#000}
+    .report-header{background:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<div class="report-wrap">
+
+  <!-- Header -->
+  <div class="report-header">
+    <div class="rh-logos">
+      <div class="rh-left">${logoLeft}</div>
+      <div class="rh-center">
+        <div class="rh-label">Incident Response Report</div>
+        <div class="rh-ref">${state.ref}</div>
+        <div class="rh-name">${state.name}</div>
+      </div>
+      <div class="rh-right">${logoRight}</div>
+    </div>
+  </div>
+
+  <!-- Summary bar -->
+  <div class="summary-bar">
+    <div class="sb-item"><div class="sb-label">Threat Type</div><div class="sb-val accent">${pb.short}</div></div>
+    <div class="sb-item"><div class="sb-label">Severity</div><div class="sb-val"><span class="sev-badge-report sev-${state.severity.toLowerCase()}">${state.severity}</span></div></div>
+    <div class="sb-item"><div class="sb-label">Discovery</div><div class="sb-val">${state.discovery}</div></div>
+    <div class="sb-item"><div class="sb-label">Started</div><div class="sb-val">${startStr}</div></div>
+    <div class="sb-item"><div class="sb-label">Duration</div><div class="sb-val accent">${duration}</div></div>
+    <div class="sb-item"><div class="sb-label">Phase at Export</div><div class="sb-val">${pb.phases[state.currentPhase].name}</div></div>
+    <div class="sb-item"><div class="sb-label">Exported</div><div class="sb-val">${exportTime}</div></div>
+  </div>
+
+  <!-- Incident Details -->
+  <div class="section">
+    <div class="section-title">Incident Details</div>
+    <div>
+      <div class="info-grid" style="margin-bottom:14px">
+        <div class="info-item"><div class="info-label">IR Reference</div><div class="info-value">${state.ref}</div></div>
+        <div class="info-item"><div class="info-label">Incident Name</div><div class="info-value">${state.name}</div></div>
+        <div class="info-item"><div class="info-label">Data at Risk</div><div class="info-value">${state.dataAtRisk || '—'}</div></div>
+        <div class="info-item"><div class="info-label">Notes / Context</div><div class="info-value">${document.getElementById('i-notes').value || '—'}</div></div>
+      </div>
+      ${state.systems.length > 0 ? `
+        <div class="info-label" style="margin-bottom:6px">Affected Systems</div>
+        <div class="sys-tags">${state.systems.map(s=>`<span class="sys-tag">${s}</span>`).join('')}</div>` : ''}
+    </div>
+  </div>
+
+  <!-- Bridge Team -->
+  <div class="section">
+    <div class="section-title">Bridge Call Team Roster <span class="badge badge-active">${state.team.length} Members</span></div>
+    <table>
+      <thead><tr><th>Name</th><th>Role</th><th>Status</th></tr></thead>
+      <tbody>${teamRows}</tbody>
+    </table>
+  </div>
+
+  ${regSection}
+
+  ${iocSection}
+
+  <!-- Phase Actions -->
+  ${phaseSections}
+
+  <!-- Activity Log -->
+  <div class="section">
+    <div class="section-title">Full Activity Log <span class="badge badge-active">${state.log.length} Entries</span></div>
+    <table>
+      <thead><tr><th style="width:80px">Time</th><th style="width:80px">Type</th><th>Entry</th></tr></thead>
+      <tbody>${logRows}</tbody>
+    </table>
+  </div>
+
+  <div class="report-footer">
+    ${state.ref} · ${pb.name} · Generated ${exportTime} · IR Command Suite
+  </div>
+
+</div>
+</body>
+</html>`;
+
+  downloadFile(html, state.ref + '_IR_Report_' + now.toISOString().split('T')[0] + '.html', 'text/html');
+  addLog('HTML report exported', 'action');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   EXPORT — CSV REPORT
+══════════════════════════════════════════════════════════════ */
+function exportCSVReport() {
+  const pb  = PLAYBOOKS[state.incidentType];
+  const now = new Date();
+  const esc = v => '"' + String(v || '').replace(/"/g, '""') + '"';
+  const row = (...cols) => cols.map(esc).join(',');
+
+  const allPhases = [...state.phaseHistory, {
+    phaseIndex: state.currentPhase,
+    phaseName:  pb.phases[state.currentPhase].name,
+    actions:    state.actions.map(a => ({...a})),
+    blockers:   state.blockers.map(b => ({...b})),
+    decisions:  state.decisions.map(d => ({...d}))
+  }];
+
+  let csv = '';
+
+  // ── SECTION 1: Incident Summary ──
+  csv += 'INCIDENT SUMMARY\r\n';
+  csv += row('Field', 'Value') + '\r\n';
+  csv += row('IR Reference', state.ref) + '\r\n';
+  csv += row('Incident Name', state.name) + '\r\n';
+  csv += row('Threat Type', pb.name) + '\r\n';
+  csv += row('Severity', state.severity) + '\r\n';
+  csv += row('Discovery Method', state.discovery) + '\r\n';
+  csv += row('Start Time', new Date(state.startTime).toISOString()) + '\r\n';
+  csv += row('Duration at Export', formatDuration(Date.now() - state.startTime)) + '\r\n';
+  csv += row('Phase at Export', 'Phase ' + (state.currentPhase+1) + ' — ' + pb.phases[state.currentPhase].name) + '\r\n';
+  csv += row('Affected Systems', state.systems.join('; ')) + '\r\n';
+  csv += row('Data at Risk', state.dataAtRisk) + '\r\n';
+  csv += row('Notes', document.getElementById('i-notes').value) + '\r\n';
+  csv += row('Exported At', now.toISOString()) + '\r\n';
+  csv += '\r\n';
+
+  // ── SECTION 2: Bridge Team ──
+  csv += 'BRIDGE TEAM ROSTER\r\n';
+  csv += row('Name', 'Role', 'Status') + '\r\n';
+  state.team.forEach(m => {
+    csv += row(m.name, m.role, m.status==='on'?'On Call':m.status==='away'?'Away':'Offline') + '\r\n';
+  });
+  csv += '\r\n';
+
+  // ── SECTION 3: Actions by Phase ──
+  csv += 'ACTIONS BY PHASE\r\n';
+  csv += row('Phase', 'Phase Name', 'Action', 'Owner', 'Status', 'Type') + '\r\n';
+  allPhases.forEach(ph => {
+    ph.actions.forEach(a => {
+      const status = a.done ? 'Done' : a.waiting ? 'Waiting' : 'Active';
+      const type   = a.critical ? 'Critical' : a.custom ? 'Custom' : 'Standard';
+      csv += row('Phase ' + (ph.phaseIndex+1), ph.phaseName, a.title, a.owner, status, type) + '\r\n';
+    });
+  });
+  csv += '\r\n';
+
+  // ── SECTION 4: Blockers & Decisions ──
+  csv += 'BLOCKERS AND DECISIONS\r\n';
+  csv += row('Phase', 'Type', 'Item', 'Resolved') + '\r\n';
+  allPhases.forEach(ph => {
+    (ph.blockers||[]).forEach(b => {
+      csv += row('Phase ' + (ph.phaseIndex+1) + ' — ' + ph.phaseName, 'Blocker', b.text, b.resolved?'Yes':'No') + '\r\n';
+    });
+    (ph.decisions||[]).forEach(d => {
+      csv += row('Phase ' + (ph.phaseIndex+1) + ' — ' + ph.phaseName, 'Decision', d.text, d.resolved?'Yes':'No') + '\r\n';
+    });
+  });
+  csv += '\r\n';
+
+  // ── SECTION 5: IOCs ──
+  if (state.iocs.length > 0) {
+    csv += 'INDICATORS OF COMPROMISE (IOCs)\r\n';
+    csv += row('Type', 'Value', 'Source', 'Confidence', 'Logged At') + '\r\n';
+    state.iocs.forEach(ioc => {
+      csv += row(IOC_META[ioc.type].label, ioc.value, ioc.source, ioc.confidence === 'confirmed' ? 'Confirmed' : 'Unconfirmed', ioc.added) + '\r\n';
+    });
+    csv += '\r\n';
+  }
+
+  // ── SECTION 6: Regulatory Clocks ──
+  if (state.regClocks && state.regClocks.length > 0) {
+    csv += 'REGULATORY CLOCKS\r\n';
+    csv += row('Clock', 'Limit (hours)', 'Started', 'Status at Export') + '\r\n';
+    state.regClocks.forEach(c => {
+      const elapsed   = Date.now() - c.startTime;
+      const remaining = c.hours * 3600000 - elapsed;
+      const status    = remaining <= 0 ? 'EXPIRED' : formatDuration(remaining) + ' remaining';
+      csv += row(c.label, c.hours, new Date(c.startTime).toISOString(), status) + '\r\n';
+    });
+    csv += '\r\n';
+  }
+
+  // ── SECTION 7: Activity Log ──
+  csv += 'ACTIVITY LOG (CHRONOLOGICAL)\r\n';
+  csv += row('Time', 'Type', 'Entry') + '\r\n';
+  [...state.log].reverse().forEach(e => {
+    csv += row(e.time, e.type.toUpperCase(), e.text) + '\r\n';
+  });
+
+  downloadFile(csv, state.ref + '_IR_Report_' + now.toISOString().split('T')[0] + '.csv', 'text/csv');
+  addLog('CSV report exported', 'action');
+}
+
+/* ── SHARED DOWNLOAD HELPER ── */
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], {type: mimeType + ';charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.id === 'log-input') addManualLog();
+  if (e.key === 'F' && e.altKey) document.body.requestFullscreen?.();
+  if (e.key === 'p' || e.key === 'P' && e.ctrlKey) window.print();
+});
+</script>
+<p style="position:fixed;bottom:4px;left:0;right:0;text-align:center;font-size:11px;color:#64748b;z-index:10000;pointer-events:none;">☕ Thanks <a href="https://paypal.me/jestie129" target="_blank" style="color:#3b82f6;text-decoration:none;pointer-events:all;">Buy me coffee</a> &nbsp;·&nbsp; designed by Jestie</p>
+</body>
+</html>
