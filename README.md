@@ -6,6 +6,16 @@ A single-file, browser-based incident response command dashboard for cybersecuri
 
 ---
 
+## Screenshots
+
+**War Room Activation — configure your incident in 60 seconds**
+![Setup Screen](screenshots/setup.png)
+
+**Live War Room Dashboard — active Data Leakage incident, Detect phase**
+![War Room Dashboard](screenshots/warroom.png)
+
+---
+
 ## What it does
 
 IR War Room gives your incident response team a shared command interface during a live incident. Configure the incident in 60 seconds, then run through structured playbooks with your full bridge team — tracking actions, IOCs, blockers, decisions, and regulatory clocks in one place.
